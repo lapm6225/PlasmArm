@@ -1,0 +1,2 @@
+run to load the data in the flash memory et il ne faut pas qu'il y ait de port COM ouvert
+C:\Users\maxim\.platformio\penv\Scripts\platformio.exe run --target uploadfs
