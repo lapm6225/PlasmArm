@@ -93,6 +93,8 @@
 // Set to true to run unit tests on startup instead of normal operation
 #define RUN_UNIT_TESTS false
 // Set to true to run only visual tests (detailed output, no pass/fail)
-#define RUN_VISUAL_TESTS true
+#define RUN_VISUAL_TESTS false
+// Set to true to run interactive integration test with real motors
+#define RUN_INTERACTIVE_TEST true
 
 #endif // CONFIG_H

@@ -7,6 +7,7 @@
 #include "TestTypes.h"
 #include "TestStepperMotor.h"
 #include "TestVisual.h"
+#include "TestInteractive.h"
 
 /**
  * @file RunTests.h
@@ -15,5 +16,6 @@
 
 void runAllUnitTests();
 void runVisualTestsOnly();
+void runInteractiveTest();
 
 #endif // RUN_TESTS_H

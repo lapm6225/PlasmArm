@@ -27,7 +27,7 @@
 #include "web/WebServer.h"
 
 // Test mode includes
-#if RUN_UNIT_TESTS || RUN_VISUAL_TESTS
+#if RUN_UNIT_TESTS || RUN_VISUAL_TESTS || RUN_INTERACTIVE_TEST
 #include "test/RunTests.h"
 #endif
 
@@ -71,15 +71,21 @@ void setup() {
     Serial.begin(SERIAL_BAUD_RATE);
     delay(1000);
     
-    #if RUN_UNIT_TESTS
-    // Run unit tests instead of normal operation
-    runAllUnitTests();
+    #if RUN_INTERACTIVE_TEST
+    // Run interactive integration test with real motors
+    runInteractiveTest();
     return;  // Exit setup - don't initialize robot
     #endif
-
+    
     #if RUN_VISUAL_TESTS
     // Run visual tests only (detailed output)
     runVisualTestsOnly();
+    return;  // Exit setup - don't initialize robot
+    #endif
+    
+    #if RUN_UNIT_TESTS
+    // Run unit tests instead of normal operation
+    runAllUnitTests();
     return;  // Exit setup - don't initialize robot
     #endif
 
