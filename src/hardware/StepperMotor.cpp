@@ -27,7 +27,7 @@ void StepperMotor::init() {
 void StepperMotor::setSpeed(float speed) {
     this->speed = speed;
     if (speed > 0) {
-        stepInterval = (unsigned long)(1000000.0f / speed);
+        stepInterval = (unsigned long)(1000000.0f / speed);  // microseconds per step
     } else {
         stepInterval = 0;
     }
