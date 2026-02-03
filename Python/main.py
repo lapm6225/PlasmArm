@@ -131,7 +131,7 @@ if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
 
     window = QtWidgets.QMainWindow()
-    uic.loadUi('testhmi.ui', window)
+    uic.loadUi('plasmarm.ui', window)
     
 
     window.progressBar.setValue(0)
