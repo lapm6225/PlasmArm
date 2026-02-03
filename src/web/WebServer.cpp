@@ -55,6 +55,7 @@ void WebServer::begin() {
     }
 }
 
+//partie http
 void WebServer::handleRoot(AsyncWebServerRequest* request) {
     // Send the HTML page from PROGMEM with UTF-8 charset
     request->send(200, "text/html; charset=UTF-8", WEB_HTML);
@@ -100,7 +101,9 @@ void WebServer::handleStatus(AsyncWebServerRequest* request) {
     String json = "{\"status\":\"running\"}";
     request->send(200, "application/json", json);
 }
+//fin partie http
 
+//partie websocket
 void WebServer::onWebSocketEvent(AsyncWebSocket* server, AsyncWebSocketClient* client,
                                  AwsEventType type, void* arg, uint8_t* data, size_t len) {
     if (type == WS_EVT_CONNECT) {
@@ -141,7 +144,8 @@ bool WebServer::parseCommand(const String& json, Command& cmd) {
         float x = doc["x"] | 0.0f;
         float y = doc["y"] | 0.0f;
         float speed = doc["speed"] | DEFAULT_SPEED;
-        cmd = Command(Command::MOVE_TO, Point2D(x, y), speed);
+        bool tool = doc["tool"] | false;
+        cmd = Command(Command::MOVE_TO, Point2D(x, y), speed, tool);
     } else if (typeStr == "HOME") {
         cmd = Command(Command::HOME, Point2D(0, 0));
     } else if (typeStr == "STOP") {

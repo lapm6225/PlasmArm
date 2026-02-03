@@ -31,12 +31,14 @@ struct JointAngles {
 // Robot state information
 struct RobotState {
     Point2D currentPosition;    // Current Cartesian position
+    float toolZ;                 
+    bool toolActive;            // État de l'outil
     JointAngles currentAngles;  // Current joint angles
     bool isMoving;               // Movement status
     bool isHomed;                // Homing status
     
-    RobotState() : currentPosition(0, 0), currentAngles(0, 0), 
-                   isMoving(false), isHomed(false) {}
+    RobotState() : currentPosition(0, 0), toolZ(0.0f), toolActive(false),
+     currentAngles(0, 0), isMoving(false), isHomed(false) {}
 };
 
 // Command from web interface or G-code parser
@@ -46,16 +48,25 @@ struct Command {
         MOVE_RELATIVE,// Move relative to current position
         HOME,         // Home the robot
         SET_SPEED,    // Set movement speed
+        TOOL_CONTROL, // Control tool
         STOP          // Emergency stop
     };
     
     Type type;
     Point2D target;  // Target position (for MOVE_TO, MOVE_RELATIVE)
     float speed;     // Speed parameter (for SET_SPEED, MOVE_TO)
+    float zValue;
+    bool toolState;  
+
+    Command() : type(MOVE_TO), target(0, 0), speed(0.0f), zValue(0.0f), toolState(false) {}
     
-    Command() : type(MOVE_TO), target(0, 0), speed(0.0f) {}
-    Command(Type t, Point2D pos, float spd = 0.0f) 
-        : type(t), target(pos), speed(spd) {}
+    // Constructeur pour mouvement
+    Command(Type t, Point2D pos, float spd = 0.0f, bool tool = false) 
+        : type(t), target(pos), speed(spd), toolState(tool) {}
+
+    // Constructeur pour outil seul
+    Command(Type t, bool state, float val = 0.0f) 
+        : type(type = t), toolState(state), zValue(val) {}
 };
 
 #endif // TYPES_H
