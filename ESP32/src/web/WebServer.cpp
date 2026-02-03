@@ -118,9 +118,11 @@ void WebServer::onWebSocketEvent(AsyncWebSocket* server, AsyncWebSocketClient* c
         
         if (parseCommand(message, cmd) && commandQueue) {
             if (xQueueSend(commandQueue, &cmd, pdMS_TO_TICKS(100)) == pdTRUE) {
-                Serial.printf("WebSocket: Command received and queued\n");
+                // SUCCÈS : On envoie un ACK au client pour dire "J'ai pris la commande, envoie la suite"
+                client->text("{\"type\":\"ACK\"}"); 
             } else {
-                Serial.println("WebSocket: WARNING - Command queue full!");
+                // ERREUR : Buffer plein (ne devrait pas arriver avec notre gestion côté Python)
+                client->text("{\"type\":\"ERROR\", \"msg\":\"Buffer Full\"}");
             }
         }
     }
