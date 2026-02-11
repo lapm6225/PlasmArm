@@ -1,0 +1,32 @@
+#include <Arduino.h>
+/*
+//platformio.ini
+[env:env1]
+board = esp32doit-devkit-v1
+platform = espressif32
+framework = arduino
+*/
+
+// #include "wifi_server.cpp"
+
+void setup() {
+  // put your setup code here, to run once:
+  pinMode(18,OUTPUT);
+  pinMode(19,OUTPUT);
+  digitalWrite(18,HIGH);
+}
+
+int i=0;
+void loop() {
+  digitalWrite(19, HIGH);
+  delay(500); // Pulse width
+  digitalWrite(19, LOW);
+  delayMicroseconds(50); // Gap between pulses
+  i+=1;
+  if(i>20000){
+    delay(1000);//une sec
+    i=0;
+    digitalWrite(18,!digitalRead(18));
+  }
+  // This will run much faster and smoother
+}
