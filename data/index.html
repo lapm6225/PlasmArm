@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP32 Robot Control</title>
+    <style>
+        :root { --primary: #2563eb; --bg: #f8fafc; --text: #1e293b; --success: #22c55e; --error: #ef4444; }
+        body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .card { background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); width: 100%; max-width: 450px; margin-bottom: 20px; }
+        h2 { margin-top: 0; font-size: 1.2rem; color: var(--primary); border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; }
+        
+        /* Upload Area */
+        .upload-area { border: 2px dashed #cbd5e1; padding: 20px; border-radius: 8px; text-align: center; cursor: pointer; transition: 0.3s; }
+        .upload-area.highlight { border-color: var(--primary); background: #eff6ff; }
+        .progress-bar { height: 6px; width: 0%; background: var(--success); transition: width 0.2s; margin-top: 10px; border-radius: 3px; }
+
+        /* Controls Area */
+        .control-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 15px; }
+        button { background: white; border: 1px solid #cbd5e1; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        button:hover { background: #f1f5f9; border-color: var(--primary); }
+        button.action { background: var(--primary); color: white; border: none; }
+        
+        .manual-cmd { display: flex; gap: 5px; margin-top: 15px; }
+        .manual-cmd input { flex-grow: 1; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; }
+        
+        #status { font-size: 0.85rem; margin-top: 15px; text-align: center; font-weight: 500; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h2>Fichier G-Code</h2>
+        <div id="drop-area" class="upload-area">
+            <p>Glisser le fichier ici ou cliquer</p>
+            <input type="file" id="fileElem" onchange="handleFiles(this.files)" style="display:none">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+        <div id="status">Statut: Prêt</div>
+    </div>
+
+    <div class="card">
+        <h2>Contrôle Manuel</h2>
+        <div class="control-grid">
+            <button onclick="sendCmd('move?axis=Y&dir=1')">Y+</button>
+            <button onclick="sendCmd('move?axis=X&dir=-1')">X-</button>
+            <button class="action" onclick="sendCmd('home')">HOME</button>
+            <button onclick="sendCmd('move?axis=X&dir=1')">X+</button>
+            <button onclick="sendCmd('move?axis=Y&dir=-1')">Y-</button>
+        </div>
+
+        <div class="manual-cmd">
+            <input type="text" id="gcodeInp" placeholder="Commande G-Code (ex: G1 X10)">
+            <button onclick="sendManual()">Envoyer</button>
+        </div>
+    </div>
+
+    <script>
+        // --- LOGIQUE UPLOAD (Gardée de ton code mais simplifiée) ---
+        let dropArea = document.getElementById('drop-area');
+        let statusText = document.getElementById('status');
+
+        dropArea.onclick = () => document.getElementById('fileElem').click();
+
+        function handleFiles(files) { if(files.length) uploadFile(files[0]); }
+
+        function uploadFile(file) {
+            let formData = new FormData();
+            formData.append('f', file);
+            let xhr = new XMLHttpRequest();
+            xhr.open('POST', '/upload', true);
+            xhr.upload.onprogress = (e) => {
+                document.getElementById('progressBar').style.width = (e.loaded/e.total*100) + '%';
+            };
+            xhr.onload = () => statusText.innerText = "Upload Terminé !";
+            xhr.send(formData);
+        }
+
+        // --- NOUVELLE LOGIQUE DE COMMANDE ---
+        function sendCmd(endpoint) {
+            statusText.innerText = "Envoi commande...";
+            fetch('/' + endpoint)
+                .then(response => response.text())
+                .then(data => {
+                    statusText.innerText = "Réponse: " + data;
+                })
+                .catch(err => {
+                    statusText.innerText = "Erreur de connexion";
+                });
+        }
+
+        function sendManual() {
+            let val = document.getElementById('gcodeInp').value;
+            if(val) sendCmd('gcode?val=' + encodeURIComponent(val));
+        }
+    </script>
+</body>
+</html>
