@@ -1,48 +1,113 @@
 from PyQt6 import QtWidgets, uic
-from PyQt6.QtWidgets import QGraphicsScene, QGraphicsRectItem, QGraphicsLineItem, QGraphicsItem
-from PyQt6.QtCore import QObject, pyqtProperty, QPropertyAnimation, QRectF, Qt
-from PyQt6.QtGui import QPen
+from PyQt6.QtWidgets import QGraphicsScene, QGraphicsRectItem, QGraphicsEllipseItem, QGraphicsLineItem, QGraphicsItem, QLineEdit, QFileDialog 
+from PyQt6.QtCore import QObject, pyqtProperty, QPropertyAnimation, QRectF, Qt, QPointF
+from PyQt6.QtGui import QPen 
 import ezdxf
 import os
 from pathlib import Path
 
-x = 0
+angular_speed = 1
 
+
+
+# --- Qui print un DXF centré ---
 def func_print():
-    global x
-    print("Starting print")
-    if x < 100:
-        x += 10
-    else:
-        x = 0
-    window.progressBar.setValue(x)
+    doc = ezdxf.new()
+    msp = doc.modelspace()
+    origin_bras = QPointF(400, 450)
 
-def open_folder():
-    desktop = Path.home() / "Desktop"
-    os.startfile(desktop)
+    for item in window.dxf_group.childItems():
+        if isinstance(item, QGraphicsLineItem):
+            line = item.line()
+            p1 = item.mapToScene(line.p1())
+            p2 = item.mapToScene(line.p2())
 
-# --- Fonctions angles ---
+            # Convertir dans référentiel bras
+            p1_robot = p1 - origin_bras
+            p2_robot = p2 - origin_bras
+
+            msp.add_line((p1_robot.x(), -p1_robot.y()), (p2_robot.x(), -p2_robot.y()))
+
+    doc.saveas("export_robot.dxf")
+
+
+
+
+def open_file():
+    filename, _ = QFileDialog.getOpenFileName(
+        None,
+        "Ouvrir un fichier DXF",
+        "",
+        "Fichiers DXF (*.dxf)"
+    )
+
+    if filename:
+        print("Fichier choisi :", filename)
+        window.dxf_group=load_dxf_into_scene(scene, window.graphicsView,filename)
+
+def close_file():
+    scene.removeItem(window.dxf_group)
+
+
+def change_angular_speed():
+    global angular_speed
+    text = window.edit_angular_speed.text()
+    angular_speed = float(text) if text else 1
+
+
+
+
+
+
+
+# --- forcer float ---
+def enforce_float_only(line_edit: QLineEdit):
+    def clean(text):
+        allowed = "0123456789.-"
+        cleaned = "".join(c for c in text if c in allowed)
+
+        # Only one dot
+        if cleaned.count('.') > 1:
+            parts = cleaned.split('.', 1)
+            cleaned = parts[0] + '.' + parts[1].replace('.', '')
+
+        # Only one minus, and only at the beginning
+        if cleaned.count('-') > 1:
+            cleaned = cleaned.replace('-', '', cleaned.count('-') - 1)
+        if '-' in cleaned and cleaned.index('-') != 0:
+            cleaned = cleaned.replace('-', '')
+
+        if cleaned != text:
+            line_edit.setText(cleaned)
+
+    line_edit.textChanged.connect(clean)
+
+# --- Fonctions boutons angles ---
 shoulder_angle = 0
 elbow_angle = 0
 
 def shoulder_clockwise():
     global shoulder_angle
-    shoulder_angle += 5
+    global angular_speed
+    shoulder_angle += angular_speed
     animator.setAngle(shoulder_angle)
 
 def shoulder_counterclockwise():
     global shoulder_angle
-    shoulder_angle -= 5
+    global angular_speed
+    shoulder_angle -= angular_speed
     animator.setAngle(shoulder_angle)
 
 def elbow_clockwise():
     global elbow_angle
-    elbow_angle += 5
+    global angular_speed
+    elbow_angle += angular_speed
     animator_elbow.setAngle(elbow_angle)
 
 def elbow_counterclockwise():
     global elbow_angle
-    elbow_angle -= 5
+    global angular_speed
+    elbow_angle -= angular_speed
     animator_elbow.setAngle(elbow_angle)
     
 
@@ -135,7 +200,7 @@ if __name__ == '__main__':
     
 
     window.progressBar.setValue(0)
-    window.Button_Print.clicked.connect(open_folder)
+    window.Button_Print.clicked.connect(func_print)
 
     window.Bras1_Horaire.clicked.connect(shoulder_clockwise)
     window.Bras1_Antihoraire.clicked.connect(shoulder_counterclockwise)
@@ -143,161 +208,63 @@ if __name__ == '__main__':
     window.Elbow_clockwise.clicked.connect(elbow_clockwise)
     window.Elbow_counterclockwise.clicked.connect(elbow_counterclockwise)
 
+    window.actionLoad.triggered.connect(open_file)
+    window.actionFermer.triggered.connect(close_file)
+
+    window.edit_angular_speed.textChanged.connect(change_angular_speed)
+
+
+
+    enforce_float_only(window.edit_angular_speed)
+    
+
     # --- Scène ---
     scene = QGraphicsScene()
     window.graphicsView.setScene(scene)
     window.graphicsView.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
-    scene.setSceneRect(0, 0, 2000, 2000)
+    scene.setSceneRect(0, 0, 800, 500)
 
     # --- Charger un DXF ---
-    dxf_group = load_dxf_into_scene(scene, window.graphicsView, "plan.dxf")
+    #dxf_group = load_dxf_into_scene(scene, window.graphicsView, "plan.dxf")
     
 
     # --- Bras : épaule ---
-    shoulder = QGraphicsRectItem(QRectF(0, 0, 200, 20))
+    shoulder = QGraphicsRectItem(QRectF(0, 0, 150, 20))
     scene.addItem(shoulder)
     shoulder.setTransformOriginPoint(0, 10)
-    shoulder.setPos(350, 450)
+    shoulder.setPos(400, 450)
 
     window.graphicsView.setDragMode(QtWidgets.QGraphicsView.DragMode.NoDrag)
 
 
     # --- Bras : coude ---
-    elbow = QGraphicsRectItem(QRectF(0, 0, 200, 20))
+    elbow = QGraphicsRectItem(QRectF(0, 0, 148, 20))
     elbow.setParentItem(shoulder)
     elbow.setTransformOriginPoint(0, 10)
-    elbow.setPos(190, 0)
+    elbow.setPos(140, 0)
 
     # --- Animateurs ---
     animator = AngleAnimator(shoulder)
     animator_elbow = AngleAnimator(elbow)
 
+    # --- afficher porté  ---
+    arc_max = QGraphicsEllipseItem(112, 172, 576, 576)
+    scene.addItem(arc_max)
+    arc_max.setStartAngle(0)
+    arc_max.setSpanAngle(180 * 16)
+    arc_max.setPen(QPen(Qt.GlobalColor.red, 2))
+    arc_max.setZValue(1000)
+
+    arc_min = QGraphicsEllipseItem(379, 439, 42, 42)
+    scene.addItem(arc_min)
+    arc_min.setStartAngle(0)
+    arc_min.setSpanAngle(180 * 16)
+    arc_min.setPen(QPen(Qt.GlobalColor.red, 2))
+    arc_min.setZValue(1000)
+
+
+
     window.show()
     sys.exit(app.exec())
 
 
-
-
-
-# from PyQt6 import QtWidgets, uic
-# from PyQt6.QtWidgets import QGraphicsScene, QGraphicsRectItem
-# from PyQt6.QtCore import QObject, pyqtProperty, QPropertyAnimation, QRectF
-# import ezdxf
-# import os
-# from pathlib import Path
-
-# x = 0
-# # --- Fonction de test ---
-# def func_print():
-#     global x
-#     print("Starting print")
-#     if x < 100:
-#         x += 10
-#     else:
-#         x = 0
-#     window.progressBar.setValue(x)
-
-# def open_folder():
-#     desktop = Path.home() / "Desktop"
-#     os.startfile(desktop)
-
-# # --- Fonction angle épaule ---
-# shoulder_angle = 0
-
-# def shoulder_clockwise():
-#     global shoulder_angle
-#     shoulder_angle += 5
-#     animator.setAngle(shoulder_angle)
-
-# def shoulder_counterclockwise():
-#     global shoulder_angle
-#     shoulder_angle -= 5
-#     animator.setAngle(shoulder_angle)
-
-# # --- Fonction angle coude ---
-# elbow_angle = 0
-
-# def elbow_clockwise():
-#     global elbow_angle
-#     elbow_angle += 5
-#     animator_elbow.setAngle(elbow_angle)
-
-# def elbow_counterclockwise():
-#     global elbow_angle
-#     elbow_angle -= 5
-#     animator_elbow.setAngle(elbow_angle)
-
-
-
-# # ---------------------------------------------------------
-# #  WRAPPER POUR ANIMER UN QGraphicsItem EN PyQt6
-# # ---------------------------------------------------------
-# class AngleAnimator(QObject):
-#     def __init__(self, graphics_item):
-#         super().__init__()
-#         self.item = graphics_item
-#         self._angle = 0
-
-#     def getAngle(self):
-#         return self._angle
-
-#     def setAngle(self, value):
-#         self._angle = value
-#         self.item.setRotation(value)
-
-#     angle = pyqtProperty(float, getAngle, setAngle)
-
-
-# # ---------------------------------------------------------
-# #  PROGRAMME PRINCIPAL
-# # ---------------------------------------------------------
-# if __name__ == '__main__':
-#     import sys
-    
-#     app = QtWidgets.QApplication(sys.argv)
-
-#     window = QtWidgets.QMainWindow()
-#     uic.loadUi('testhmi.ui', window)
-
-#     window.progressBar.setValue(0)
-#     window.Button_Print.clicked.connect(open_folder)
-
-#     window.Bras1_Horaire.clicked.connect(shoulder_clockwise)
-#     window.Bras1_Antihoraire.clicked.connect(shoulder_counterclockwise)
-
-#     window.Elbow_clockwise.clicked.connect(elbow_clockwise)
-#     window.Elbow_counterclockwise.clicked.connect(elbow_counterclockwise)
-
-#     # --- Création de la scène graphique ---
-#     scene = QGraphicsScene()
-#     window.graphicsView.setScene(scene)
-#     scene.setSceneRect(0, 0, 700, 500)
-
-
-#     # --- Création du épaule ---
-#     shoulder = QGraphicsRectItem(QRectF(0, 0, 200, 20))
-#     scene.addItem(shoulder)
-#     shoulder.setTransformOriginPoint(0, 10)
-#     shoulder.setPos(350,450)
-
-#     # --- Création du coupe ---
-#     elbow = QGraphicsRectItem(QRectF(0, 0, 200, 20))
-#     elbow.setParentItem(shoulder)
-#     elbow.setTransformOriginPoint(0, 10)
-#     elbow.setPos(190,0)
-    
-
-#     # --- Objet animateur ---
-#     animator = AngleAnimator(shoulder)
-#     animator_elbow = AngleAnimator(elbow)
-
-#     # --- Animation ---
-#     anim = QPropertyAnimation(animator, b"angle")
-#     # anim.setStartValue(-90)
-#     # anim.setEndValue(0)
-#     # anim.setDuration(1500)
-#     # anim.setLoopCount(2)
-#     # anim.start()
-
-#     window.show()
-#     sys.exit(app.exec())
