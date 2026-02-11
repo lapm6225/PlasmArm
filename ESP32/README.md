@@ -1,2 +1,0 @@
-# PlasmArm
-Projet S4
