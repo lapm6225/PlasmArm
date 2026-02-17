@@ -17,11 +17,31 @@
 #define ARM_LENGTH_1 150.0f // Length of first link (base to elbow)
 #define ARM_LENGTH_2 150.0f // Length of second link (elbow to end effector)
 
-// Workspace limits (in mm)
-#define WORKSPACE_X_MIN -200.0f
-#define WORKSPACE_X_MAX 200.0f
-#define WORKSPACE_Y_MIN 50.0f
-#define WORKSPACE_Y_MAX 300.0f
+// Workspace limits (SCARA half-circle workspace)
+// The robot sits at the origin (0,0) and can reach a half-annulus
+// in the upper half-plane (y > 0).
+//
+//               (0, 300)            Outer boundary: r = L1+L2 = 300mm
+//                  |                Inner boundary: r = 50mm (avoid
+//                  singularity)
+//                 / \               Half-plane:     y > 0
+//    (-300,0)----+---+----(300,0)   Theta1 range:   -20° to 200°
+//               (BASE)
+//
+#define WORKSPACE_R_MAX (ARM_LENGTH_1 + ARM_LENGTH_2) // 300mm max reach
+#define WORKSPACE_R_MIN 50.0f // Minimum reach - prevents arm folding on itself
+
+// Joint angle limits (degrees, measured from +X axis, CCW positive)
+#define THETA1_MIN -20.0f // Slightly past +X axis (clockwise)
+#define THETA1_MAX 200.0f // Slightly past -X axis (counter-clockwise)
+#define THETA2_MIN 0.0f   // Fully extended
+#define THETA2_MAX 170.0f // Practical folding limit
+
+// Home position: arm fully extended upward (+Y direction)
+#define HOME_X 0.0f
+#define HOME_Y WORKSPACE_R_MAX // 300mm straight up
+#define HOME_THETA1 90.0f      // Pointing up
+#define HOME_THETA2 0.0f       // Fully extended
 
 // ============================================================================
 // Motor Configuration

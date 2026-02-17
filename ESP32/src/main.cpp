@@ -22,7 +22,6 @@
 #include <freertos/queue.h>
 #include <freertos/task.h>
 
-
 #include "Config.h"
 #include "core/Kinematics.h"
 #include "core/Planner.h"
@@ -32,7 +31,6 @@
 #include "hardware/StepperMotor.h"
 #include "web/WebServer.h"
 #include <queue> // For std::queue in planner task
-
 
 // Test mode includes
 #if RUN_UNIT_TESTS || RUN_VISUAL_TESTS || RUN_INTERACTIVE_TEST
@@ -101,6 +99,17 @@ void setup() {
       "\n\n============================================================");
   Serial.println("ESP32 SCARA Robot Controller");
   Serial.println("  Synchronized 4D Motion (X,Y,Z,Tool)");
+  Serial.println(
+      "============================================================");
+  Serial.printf("  Arms:      L1=%.0fmm  L2=%.0fmm\n", ARM_LENGTH_1,
+                ARM_LENGTH_2);
+  Serial.printf("  Workspace: r=[%.0f, %.0f]mm  y>0 (upper half-plane)\n",
+                WORKSPACE_R_MIN, WORKSPACE_R_MAX);
+  Serial.printf("  Theta1:    [%.0f, %.0f] deg  (0=+X, 90=+Y, 180=-X)\n",
+                THETA1_MIN, THETA1_MAX);
+  Serial.printf("  Theta2:    [%.0f, %.0f] deg\n", THETA2_MIN, THETA2_MAX);
+  Serial.printf("  Home:      (%.0f, %.0f) theta1=%.0f theta2=%.0f\n", HOME_X,
+                HOME_Y, HOME_THETA1, HOME_THETA2);
   Serial.println(
       "============================================================\n");
 
@@ -291,7 +300,7 @@ void taskTrajectoryPlanner(void *parameter) {
 
         Serial.printf("Planner:   -> %d interpolation points\n", numPoints);
 
-        // 4D interpolation: distribute Z and tool changes across the path
+        // 4D interpolation: distribute Z linearly, apply tool state immediately
         int i = 0;
         while (!xyQueue.empty()) {
           Point2D pt = xyQueue.front();
@@ -299,7 +308,8 @@ void taskTrajectoryPlanner(void *parameter) {
 
           float t = (numPoints > 1) ? (float)i / (numPoints - 1) : 1.0f;
           float z = currentState.z + t * (target.z - currentState.z);
-          bool tool = (t >= 0.5f) ? target.toolActive : currentState.toolActive;
+          // Tool state from the command applies to the ENTIRE path
+          bool tool = target.toolActive;
 
           TargetState point(pt.x, pt.y, z, tool);
           if (xQueueSend(motionQueue, &point, pdMS_TO_TICKS(100)) != pdTRUE) {
@@ -330,9 +340,19 @@ void taskTrajectoryPlanner(void *parameter) {
       }
 
       case Command::HOME: {
-        Serial.println("Planner: HOME -> moving to (0, 0, 0) tool=OFF");
-        Point2D homePos(0, 0);
+        Serial.printf("Planner: HOME -> moving to (%.0f, %.0f, z=0) tool=OFF\n",
+                      HOME_X, HOME_Y);
+        Point2D homePos(HOME_X, HOME_Y);
         Point2D startXY = currentState.toPoint2D();
+
+        // First: turn tool OFF and raise Z
+        if (currentState.toolActive || currentState.z < 5.0f) {
+          TargetState safeState(currentState.x, currentState.y, 5.0f, false);
+          xQueueSend(motionQueue, &safeState, portMAX_DELAY);
+        }
+
+        // Then: travel to home position
+        planner.setSpeed(DEFAULT_SPEED);
         std::queue<Point2D> xyQueue;
         planner.planPath(startXY, homePos, xyQueue);
 
@@ -342,13 +362,13 @@ void taskTrajectoryPlanner(void *parameter) {
           Point2D pt = xyQueue.front();
           xyQueue.pop();
           float t = (numPts > 1) ? (float)i / (numPts - 1) : 1.0f;
-          float z = currentState.z * (1.0f - t);
+          float z = 5.0f * (1.0f - t); // Lower Z gradually to 0 during travel
           TargetState point(pt.x, pt.y, z, false);
           xQueueSend(motionQueue, &point, portMAX_DELAY);
           i++;
         }
 
-        currentState = TargetState(0, 0, 0, false);
+        currentState = TargetState(HOME_X, HOME_Y, 0, false);
         robotState.currentPosition = homePos;
         robotState.toolZ = 0;
         robotState.toolActive = false;
@@ -458,11 +478,21 @@ void taskMotionControl(void *parameter) {
       // Verbose position logging to serial
       int cmdUsed = COMMAND_QUEUE_SIZE - uxQueueSpacesAvailable(commandQueue);
       int motUsed = MOTION_QUEUE_SIZE - uxQueueSpacesAvailable(motionQueue);
+      /*
+      //broadcast position
       Serial.printf(
           "Motion: pos(%.1f, %.1f) z=%.1f tool=%s | cmdQ=%d/%d motQ=%d/%d\n",
           robotState.currentPosition.x, robotState.currentPosition.y,
           robotState.toolZ, robotState.toolActive ? "ON" : "OFF", cmdUsed,
           COMMAND_QUEUE_SIZE, motUsed, MOTION_QUEUE_SIZE);
+          */
+      // broadcast angles and position
+      Serial.printf("Motion: angles(%.1f, %.1f) \t|  pos(%.1f, %.1f) \t| "
+                    "cmdQ=%d/%d motQ=%d/%d\n",
+                    robotState.currentAngles.theta1,
+                    robotState.currentAngles.theta2,
+                    robotState.currentPosition.x, robotState.currentPosition.y,
+                    cmdUsed, COMMAND_QUEUE_SIZE, motUsed, MOTION_QUEUE_SIZE);
     }
 
     // Fixed frequency loop

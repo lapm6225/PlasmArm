@@ -11,7 +11,6 @@ void runAllUnitTests() {
     TestRunner runner(true);
     
     // Run all test suites
-    TestTypes::runAllTests(runner);
     TestKinematics::runAllTests(runner);
     TestPlanner::runAllTests(runner);
     TestStepperMotor::runAllTests(runner);

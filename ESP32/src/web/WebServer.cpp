@@ -3,7 +3,6 @@
 #include "web_assets.h"
 #include <ArduinoJson.h>
 
-
 WebServer::WebServer()
     : server(nullptr), ws(nullptr), commandQueue(nullptr),
       motionQueue(nullptr) {}
@@ -195,19 +194,19 @@ bool WebServer::parseCommand(const String &json, Command &cmd) {
     float z = doc["z"] | 0.0f;
     float speed = doc["speed"] | DEFAULT_SPEED;
     bool tool = doc["tool"] | false;
-    cmd = Command(Command::MOVE_TO, x, y, speed, z, tool);
+    cmd = Command(Command::MOVE_TO, x, y, z, speed, tool);
   } else if (typeStr == "TOOL") {
     // Tool control: {"type":"TOOL","state":true,"z":5.0}
     bool state = doc["state"] | false;
     float z = doc["z"] | 0.0f;
     cmd = Command(Command::TOOL_CONTROL, state, z);
   } else if (typeStr == "HOME") {
-    cmd = Command(Command::HOME, 0.0f, 0.0f);
+    cmd = Command(Command::HOME, HOME_X, HOME_Y);
   } else if (typeStr == "STOP") {
     cmd = Command(Command::STOP, 0.0f, 0.0f);
   } else if (typeStr == "SET_SPEED") {
     float speed = doc["speed"] | DEFAULT_SPEED;
-    cmd = Command(Command::SET_SPEED, 0.0f, 0.0f, speed);
+    cmd = Command(Command::SET_SPEED, 0.0f, 0.0f, 0.0f, speed);
   } else {
     Serial.printf("WebServer: Unknown command type: %s\n", typeStr.c_str());
     return false;

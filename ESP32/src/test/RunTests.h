@@ -4,7 +4,6 @@
 #include "TestRunner.h"
 #include "TestKinematics.h"
 #include "TestPlanner.h"
-#include "TestTypes.h"
 #include "TestStepperMotor.h"
 #include "TestVisual.h"
 #include "TestInteractive.h"

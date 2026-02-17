@@ -52,8 +52,8 @@ struct RobotState {
   bool isHomed;              // Homing status
 
   RobotState()
-      : currentPosition(0, 0), toolZ(0.0f), toolActive(false),
-        currentAngles(0, 0), isMoving(false), isHomed(false) {}
+      : currentPosition(0, 300), toolZ(0.0f), toolActive(false),
+        currentAngles(90, 0), isMoving(false), isHomed(false) {}
 };
 
 // Command from web interface or G-code parser
@@ -76,8 +76,7 @@ struct Command {
   Command() : type(MOVE_TO), x(0), y(0), z(0), speed(0), toolState(false) {}
 
   // General constructor
-  Command(Type t, float x, float y, float spd = 0.0f, float z = 0.0f,
-          bool tool = false)
+  Command(Type t, float x, float y, float z = 0.0f, float spd = 0.0f, bool tool = false)
       : type(t), x(x), y(y), z(z), speed(spd), toolState(tool) {}
 
   // Tool-only constructor
