@@ -43,23 +43,24 @@ void TestVisual::printSeparator() {
 
 void TestVisual::testInterpolationVisual() {
     Serial.println("\n═══════════════════════════════════════════════════════════");
-    Serial.println("TEST 1: INTERPOLATION VISUALIZATION");
+    Serial.println("TEST 1: INTERPOLATION VISUALIZATION (4D)");
     Serial.println("═══════════════════════════════════════════════════════════");
     
     Planner planner(50.0f, 200.0f);  // 50 mm/s, 200 mm/s²
     
-    Point2D start(100.0f, 100.0f);
-    Point2D end(200.0f, 150.0f);
+    TargetState start(100.0f, 100.0f, 0.0f, false);
+    TargetState end(200.0f, 150.0f, 5.0f, true);
+    
+    Point2D startXY = start.toPoint2D();
+    Point2D endXY = end.toPoint2D();
     
     Serial.println("\nPlanning path:");
-    printPoint(start, "Start");
-    Serial.println();
-    printPoint(end, "End");
-    Serial.println();
+    Serial.printf("Start: (%.2f, %.2f, Z=%.2f, Tool=%s)\n", start.x, start.y, start.z, start.toolActive ? "ON" : "OFF");
+    Serial.printf("End:   (%.2f, %.2f, Z=%.2f, Tool=%s)\n", end.x, end.y, end.z, end.toolActive ? "ON" : "OFF");
     Serial.printf("Speed: %.1f mm/s\n", 50.0f);
-    Serial.printf("Distance: %.2f mm\n", Planner::distance(start, end));
+    Serial.printf("Distance: %.2f mm (3D)\n", Planner::distance3D(start, end));
     
-    std::queue<Point2D> queue;
+    std::queue<TargetState> queue;
     int numPoints = planner.planPath(start, end, queue);
     
     Serial.printf("\nGenerated %d interpolation points:\n", numPoints);
@@ -67,20 +68,23 @@ void TestVisual::testInterpolationVisual() {
     
     int index = 0;
     while (!queue.empty()) {
-        Point2D p = queue.front();
+        TargetState p = queue.front();
         queue.pop();
         
-        Serial.printf("Point %3d: ", index++);
-        printPoint(p);
-        Serial.println();
+        Serial.printf("Point %3d: (%.2f, %.2f, Z=%.2f, Tool=%s)\n", 
+                      index, p.x, p.y, p.z, p.toolActive ? "ON" : "OFF");
         
         // Print every 5th point or last point in detail
-        if (index % 5 == 0 || index == numPoints) {
-            float distFromStart = Planner::distance(start, p);
-            float progress = (distFromStart / Planner::distance(start, end)) * 100.0f;
+        if (index % 5 == 0 || index == numPoints - 1) {
+            Point2D pXY = p.toPoint2D();
+            float distFromStart = Planner::distance(startXY, pXY);
+            float totalDist = Planner::distance(startXY, endXY);
+            float progress = (totalDist > 0) ? (distFromStart / totalDist) * 100.0f : 100.0f;
             Serial.printf("         Distance from start: %.2f mm (%.1f%%)\n", 
                          distFromStart, progress);
         }
+        
+        index++;
     }
     
     printSeparator();
@@ -224,25 +228,26 @@ void TestVisual::testPositionToAngleVisual() {
 
 void TestVisual::testFullPathVisual() {
     Serial.println("\n═══════════════════════════════════════════════════════════");
-    Serial.println("TEST 4: FULL PATH VISUALIZATION");
-    Serial.println("(Interpolation + Kinematics Verification)");
+    Serial.println("TEST 4: FULL PATH VISUALIZATION (4D)");
+    Serial.println("(Interpolation + Kinematics + Tool State)");
     Serial.println("═══════════════════════════════════════════════════════════");
     
     Kinematics kin(ARM_LENGTH_1, ARM_LENGTH_2);
     Planner planner(50.0f, 200.0f);
     
-    Point2D start(150.0f, 100.0f);
-    Point2D end(200.0f, 200.0f);
+    TargetState start(150.0f, 100.0f, 0.0f, false);
+    TargetState end(200.0f, 200.0f, 3.0f, true);
+    
+    Point2D startXY = start.toPoint2D();
+    Point2D endXY = end.toPoint2D();
     
     Serial.println("\nFull path test:");
-    printPoint(start, "Start");
-    Serial.println();
-    printPoint(end, "End");
-    Serial.println();
+    Serial.printf("Start: (%.2f, %.2f, Z=%.2f, Tool=%s)\n", start.x, start.y, start.z, start.toolActive ? "ON" : "OFF");
+    Serial.printf("End:   (%.2f, %.2f, Z=%.2f, Tool=%s)\n", end.x, end.y, end.z, end.toolActive ? "ON" : "OFF");
     
     // Check if both points are reachable
-    bool startReachable = kin.isReachable(start);
-    bool endReachable = kin.isReachable(end);
+    bool startReachable = kin.isReachable(startXY);
+    bool endReachable = kin.isReachable(endXY);
     
     Serial.printf("Start reachable: %s\n", startReachable ? "YES ✅" : "NO ❌");
     Serial.printf("End reachable: %s\n", endReachable ? "YES ✅" : "NO ❌");
@@ -254,8 +259,8 @@ void TestVisual::testFullPathVisual() {
     
     // Calculate angles for start and end
     JointAngles startAngles, endAngles;
-    kin.inverse(start, startAngles);
-    kin.inverse(end, endAngles);
+    kin.inverse(startXY, startAngles);
+    kin.inverse(endXY, endAngles);
     
     Serial.println("\nStart and end angles:");
     printAngles(startAngles, "Start");
@@ -263,13 +268,13 @@ void TestVisual::testFullPathVisual() {
     printAngles(endAngles, "End");
     Serial.println();
     
-    // Generate interpolation points
-    std::queue<Point2D> queue;
+    // Generate interpolation points (4D)
+    std::queue<TargetState> queue;
     int numPoints = planner.planPath(start, end, queue);
     
     Serial.printf("\nInterpolated path (%d points):\n", numPoints);
     printSeparator();
-    Serial.println("Point# | X (mm)  | Y (mm)  | θ1 (°)  | θ2 (°)  | Error (mm) | Status");
+    Serial.println("Point# | X (mm)  | Y (mm)  | Z (mm) | Tool | θ1 (°)  | θ2 (°)  | Error (mm) | Status");
     printSeparator();
     
     int index = 0;
@@ -278,18 +283,19 @@ void TestVisual::testFullPathVisual() {
     float maxError = 0.0f;
     
     while (!queue.empty()) {
-        Point2D target = queue.front();
+        TargetState target = queue.front();
         queue.pop();
         
+        Point2D targetXY = target.toPoint2D();
         JointAngles calculatedAngles;
-        bool ikSuccess = kin.inverse(target, calculatedAngles);
+        bool ikSuccess = kin.inverse(targetXY, calculatedAngles);
         
         if (ikSuccess) {
             // Verify round-trip
             Point2D verify;
             kin.forward(calculatedAngles, verify);
             
-            float error = Planner::distance(target, verify);
+            float error = Planner::distance(targetXY, verify);
             if (error > maxError) maxError = error;
             
             bool accurate = error < 0.1f;
@@ -298,15 +304,17 @@ void TestVisual::testFullPathVisual() {
             
             // Print every 5th point or first/last
             if (index % 5 == 0 || index == 0 || index == numPoints - 1) {
-                Serial.printf("%5d | %7.2f | %7.2f | %7.2f | %7.2f | %10.4f | %s\n",
-                            index, target.x, target.y,
+                Serial.printf("%5d | %7.2f | %7.2f | %6.2f | %s  | %7.2f | %7.2f | %10.4f | %s\n",
+                            index, target.x, target.y, target.z,
+                            target.toolActive ? " ON" : "OFF",
                             calculatedAngles.theta1, calculatedAngles.theta2,
                             error, accurate ? "✅" : "❌");
             }
         } else {
             failed++;
-            Serial.printf("%5d | %7.2f | %7.2f |   FAIL   |   FAIL   |      -      | ❌ IK Failed\n",
-                         index, target.x, target.y);
+            Serial.printf("%5d | %7.2f | %7.2f | %6.2f | %s  |   FAIL   |   FAIL   |      -      | ❌ IK Failed\n",
+                         index, target.x, target.y, target.z,
+                         target.toolActive ? " ON" : "OFF");
         }
         
         index++;

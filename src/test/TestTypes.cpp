@@ -98,21 +98,21 @@ bool TestTypes::testCommand_DefaultConstructor() {
     TestRunner runner(false);
     
     return runner.assertEqual((int)Command::MOVE_TO, (int)cmd.type) &&
-           runner.assertNear(0.0f, cmd.target.x, 0.01f) &&
-           runner.assertNear(0.0f, cmd.target.y, 0.01f) &&
+           runner.assertNear(0.0f, cmd.x, 0.01f) &&
+           runner.assertNear(0.0f, cmd.y, 0.01f) &&
            runner.assertNear(0.0f, cmd.speed, 0.01f);
 }
 
 bool TestTypes::testCommand_Types() {
     TestRunner runner(false);
     
-    Command cmd1(Command::MOVE_TO, Point2D(100.0f, 200.0f), 50.0f);
-    Command cmd2(Command::HOME, Point2D(0.0f, 0.0f));
-    Command cmd3(Command::STOP, Point2D(0.0f, 0.0f));
+    Command cmd1(Command::MOVE_TO, 100.0f, 200.0f, 50.0f);
+    Command cmd2(Command::HOME, 0.0f, 0.0f);
+    Command cmd3(Command::STOP, 0.0f, 0.0f);
     
     return runner.assertEqual((int)Command::MOVE_TO, (int)cmd1.type) &&
-           runner.assertNear(100.0f, cmd1.target.x, 0.01f) &&
-           runner.assertNear(200.0f, cmd1.target.y, 0.01f) &&
+           runner.assertNear(100.0f, cmd1.x, 0.01f) &&
+           runner.assertNear(200.0f, cmd1.y, 0.01f) &&
            runner.assertNear(50.0f, cmd1.speed, 0.01f) &&
            runner.assertEqual((int)Command::HOME, (int)cmd2.type) &&
            runner.assertEqual((int)Command::STOP, (int)cmd3.type);

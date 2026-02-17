@@ -21,5 +21,5 @@ elif 2:
     print("theta1: ",np.rad2deg(theta1),"theta2: ",np.rad2deg(theta2))
 
     theta2=-np.arccos((x**2+y**2-L1**2-L2**2)/(2*L1*L2))
-    theta1=np.arctan2(y,x)+np.arctan2(L2*np.sin(theta2),L1+L2*np.cos(theta2))
+    theta1=np.arctan2(y,x)-np.arctan2(L2*np.sin(theta2),L1+L2*np.cos(theta2))
     print("theta1: ",np.rad2deg(theta1),"theta2: ",np.rad2deg(theta2))

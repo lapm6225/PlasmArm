@@ -11,10 +11,13 @@
  * @file TestInteractive.h
  * @brief Interactive integration test with real stepper motors
  * 
- * Allows entering x,y coordinates via Serial console and seeing:
- * - All interpolation points
- * - Calculated angles for each point
- * - Real motor movement
+ * Allows entering commands via Serial console:
+ *   x,y          - Move to position
+ *   x,y,z        - Move to position with Z height
+ *   x,y,z,tool   - Move with tool state (0/1)
+ *   tool on/off   - Toggle tool state
+ *   pos           - Show current position
+ *   test          - Run test sequence (with tool toggling)
  */
 
 class TestInteractive {
@@ -28,15 +31,15 @@ private:
                               Planner& planner,
                               IMotor* motor1, 
                               IMotor* motor2,
-                              Point2D& currentPos);
-    static void executeMove(const Point2D& start,
-                           const Point2D& target,
+                              TargetState& currentState);
+    static void executeMove(const TargetState& start,
+                           const TargetState& target,
                            Kinematics& kin,
                            Planner& planner,
                            IMotor* motor1,
                            IMotor* motor2,
                            bool showDetails);
-    static void printPoint(const Point2D& p, const char* label = "");
+    static void printState(const TargetState& s, const char* label = "");
     static void printAngles(const JointAngles& angles, const char* label = "");
 };
 

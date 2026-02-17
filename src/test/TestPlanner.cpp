@@ -26,9 +26,9 @@ bool TestPlanner::testPlanPath_Simple() {
     Planner planner(50.0f, 200.0f);  // 50 mm/s, 200 mm/s²
     TestRunner runner(false);
     
-    Point2D start(0.0f, 0.0f);
-    Point2D end(100.0f, 100.0f);
-    std::queue<Point2D> queue;
+    TargetState start(0.0f, 0.0f, 0.0f, false);
+    TargetState end(100.0f, 100.0f, 0.0f, false);
+    std::queue<TargetState> queue;
     
     int numPoints = planner.planPath(start, end, queue);
     
@@ -37,14 +37,14 @@ bool TestPlanner::testPlanPath_Simple() {
     if (!runner.assertTrue(!queue.empty())) return false;
     
     // First point should be start
-    Point2D first = queue.front();
+    TargetState first = queue.front();
     if (!runner.assertNear(start.x, first.x, 0.1f) ||
         !runner.assertNear(start.y, first.y, 0.1f)) {
         return false;
     }
     
     // Last point should be end
-    Point2D last;
+    TargetState last;
     while (!queue.empty()) {
         last = queue.front();
         queue.pop();
@@ -58,9 +58,9 @@ bool TestPlanner::testPlanPath_ShortDistance() {
     Planner planner(50.0f, 200.0f);
     TestRunner runner(false);
     
-    Point2D start(0.0f, 0.0f);
-    Point2D end(1.0f, 1.0f);  // Very short distance
-    std::queue<Point2D> queue;
+    TargetState start(0.0f, 0.0f);
+    TargetState end(1.0f, 1.0f);  // Very short distance
+    std::queue<TargetState> queue;
     
     int numPoints = planner.planPath(start, end, queue);
     
@@ -73,9 +73,9 @@ bool TestPlanner::testPlanPath_LongDistance() {
     Planner planner(50.0f, 200.0f);
     TestRunner runner(false);
     
-    Point2D start(0.0f, 0.0f);
-    Point2D end(500.0f, 500.0f);  // Long distance
-    std::queue<Point2D> queue;
+    TargetState start(0.0f, 0.0f);
+    TargetState end(500.0f, 500.0f);  // Long distance
+    std::queue<TargetState> queue;
     
     int numPoints = planner.planPath(start, end, queue);
     
@@ -87,22 +87,20 @@ bool TestPlanner::testPlanPath_LongDistance() {
 bool TestPlanner::testPlanPath_SpeedVariation() {
     TestRunner runner(false);
     
-    Point2D start(0.0f, 0.0f);
-    Point2D end(100.0f, 100.0f);
+    TargetState start(0.0f, 0.0f);
+    TargetState end(100.0f, 100.0f);
     
     // Test with different speeds
     float speeds[] = {10.0f, 50.0f, 100.0f};
     
     for (int i = 0; i < 3; i++) {
         Planner planner(speeds[i], 200.0f);
-        std::queue<Point2D> queue;
+        std::queue<TargetState> queue;
         
         int numPoints = planner.planPath(start, end, queue);
         
         // Higher speed should generate fewer points (same distance, less time)
         if (i > 0) {
-            // This is a heuristic - higher speed might have fewer points
-            // but we just verify it generates points
             if (!runner.assertTrue(numPoints >= 2)) return false;
         }
     }
@@ -114,9 +112,9 @@ bool TestPlanner::testPlanPath_InterpolationInterval() {
     Planner planner(50.0f, 200.0f);
     TestRunner runner(false);
     
-    Point2D start(0.0f, 0.0f);
-    Point2D end(100.0f, 0.0f);  // 100mm distance
-    std::queue<Point2D> queue;
+    TargetState start(0.0f, 0.0f);
+    TargetState end(100.0f, 0.0f);  // 100mm distance
+    std::queue<TargetState> queue;
     
     int numPoints = planner.planPath(start, end, queue);
     
@@ -131,8 +129,8 @@ bool TestPlanner::testPlanPath_SamePoint() {
     Planner planner(50.0f, 200.0f);
     TestRunner runner(false);
     
-    Point2D point(100.0f, 100.0f);
-    std::queue<Point2D> queue;
+    TargetState point(100.0f, 100.0f);
+    std::queue<TargetState> queue;
     
     int numPoints = planner.planPath(point, point, queue);
     
@@ -145,16 +143,16 @@ bool TestPlanner::testPlanPath_VerticalLine() {
     Planner planner(50.0f, 200.0f);
     TestRunner runner(false);
     
-    Point2D start(0.0f, 0.0f);
-    Point2D end(0.0f, 200.0f);  // Vertical line
-    std::queue<Point2D> queue;
+    TargetState start(0.0f, 0.0f);
+    TargetState end(0.0f, 200.0f);  // Vertical line
+    std::queue<TargetState> queue;
     
     int numPoints = planner.planPath(start, end, queue);
     
     // Verify all points have x = 0
     bool allVertical = true;
     while (!queue.empty() && allVertical) {
-        Point2D p = queue.front();
+        TargetState p = queue.front();
         queue.pop();
         if (abs(p.x) > 0.1f) {
             allVertical = false;
@@ -168,16 +166,16 @@ bool TestPlanner::testPlanPath_HorizontalLine() {
     Planner planner(50.0f, 200.0f);
     TestRunner runner(false);
     
-    Point2D start(0.0f, 0.0f);
-    Point2D end(200.0f, 0.0f);  // Horizontal line
-    std::queue<Point2D> queue;
+    TargetState start(0.0f, 0.0f);
+    TargetState end(200.0f, 0.0f);  // Horizontal line
+    std::queue<TargetState> queue;
     
     int numPoints = planner.planPath(start, end, queue);
     
     // Verify all points have y = 0
     bool allHorizontal = true;
     while (!queue.empty() && allHorizontal) {
-        Point2D p = queue.front();
+        TargetState p = queue.front();
         queue.pop();
         if (abs(p.y) > 0.1f) {
             allHorizontal = false;

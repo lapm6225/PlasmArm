@@ -7,11 +7,15 @@
 
 /**
  * @file Planner.h
- * @brief Trajectory planning and interpolation
+ * @brief Trajectory planning and interpolation (4D: X, Y, Z, Tool)
  * 
- * Handles look-ahead planning and generates intermediate points
- * for smooth motion. Implements linear interpolation with
- * configurable time intervals.
+ * Generates intermediate TargetState points for smooth motion.
+ * Each interpolated point carries the full state: position (X,Y),
+ * tool height (Z), and tool activation state.
+ * 
+ * The planner linearly interpolates X, Y, and Z between the start
+ * and end states. The toolActive flag is copied from the end state
+ * to every interpolated point (tool state is set at segment start).
  */
 
 class Planner {
@@ -46,22 +50,27 @@ public:
     void setAcceleration(float acceleration);
     
     /**
-     * @brief Plan a path from start to end position
-     * Generates intermediate points and pushes them to the motion queue
+     * @brief Plan a 4D path from start to end state.
      * 
-     * @param start Starting position
-     * @param end Ending position
-     * @param motionQueue Queue to push interpolated points to
+     * Generates intermediate TargetState points with:
+     *   - Linear interpolation of X, Y, Z
+     *   - toolActive copied from 'end' to every point
+     * 
+     * @param start Starting state (position + tool)
+     * @param end   Ending state (position + tool)
+     * @param motionQueue Queue to push interpolated TargetState points to
      * @return Number of points generated
      */
-    int planPath(const Point2D& start, const Point2D& end, 
-                 std::queue<Point2D>& motionQueue);
+    int planPath(const TargetState& start, const TargetState& end, 
+                 std::queue<TargetState>& motionQueue);
+
+    /**
+     * @brief Calculate 3D distance between two TargetStates (XYZ)
+     */
+    static float distance3D(const TargetState& a, const TargetState& b);
     
     /**
-     * @brief Calculate distance between two points
-     * @param p1 First point
-     * @param p2 Second point
-     * @return Distance in mm
+     * @brief Calculate 2D distance between two Point2D
      */
     static float distance(const Point2D& p1, const Point2D& p2);
     
