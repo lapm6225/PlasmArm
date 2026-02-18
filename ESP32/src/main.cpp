@@ -75,6 +75,7 @@ void taskMotionControl(void *parameter);
 // ============================================================================
 void setup() {
   Serial.begin(SERIAL_BAUD_RATE);
+  Serial2.begin(SERIAL_OPENRB_BAUD_RATE, SERIAL_8N1, RXD2, TXD2);
   delay(1000);
 
 #if RUN_INTERACTIVE_TEST

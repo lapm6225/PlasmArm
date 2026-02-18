@@ -1,0 +1,36 @@
+/* * ESP32 - Test de communication UART
+ * Envoie un message toutes les 2 secondes
+ */
+#include <Arduino.h>
+
+#define RXD2 16
+#define TXD2 17
+
+void setup() {
+  // Console de monitoring (USB)
+  Serial.begin(115200);
+  
+  // Communication avec l'OpenRB-150
+  // Configuration: Baudrate, Mode, RX, TX
+  
+  
+  Serial.println("ESP32 prêt. Envoi de données sur Serial2...");
+}
+int a=10;
+void loop() {
+  Serial.println("Envoi : '10 50'");
+  Serial2.print(a);
+  Serial2.println(" 50"); // Envoi via les pins TX/RX
+  a+=10;
+  if(a>150){
+    a=0;
+  }
+  // Vérifier si l'OpenRB répond
+  if (Serial2.available()) {
+    String response = Serial2.readStringUntil('\n');
+    Serial.print("Réponse reçue : ");
+    Serial.println(response);
+  }
+
+  delay(2000);
+}

@@ -149,15 +149,21 @@ void TestInteractive::processCommand(const String& command,
     
     // Parse x,y coordinates
     int commaIndex = cmd.indexOf(',');
-    if (commaIndex > 0) {
+    int spaceIndex = cmd.indexOf(' ');
+    if (commaIndex > 0 || spaceIndex > 0) {
         // Remove "move " prefix if present
         if (cmd.startsWith("move ")) {
             cmd = cmd.substring(5);
             commaIndex = cmd.indexOf(',');
         }
-        
-        float x = cmd.substring(0, commaIndex).toFloat();
-        float y = cmd.substring(commaIndex + 1).toFloat();
+        int separatorIndex;
+        if(commaIndex >0){
+            separatorIndex=commaIndex;
+        }else if(spaceIndex>0){
+            separatorIndex=spaceIndex;
+        }
+        float x = cmd.substring(0, separatorIndex).toFloat();
+        float y = cmd.substring(separatorIndex + 1).toFloat();
         
         Point2D target(x, y);
         
@@ -237,7 +243,15 @@ void TestInteractive::executeMove(const Point2D& start,
                             angles.theta1, angles.theta2,
                             accurate ? "✅" : "❌");
             }
+            //test communication Serie
+            Serial2.print("<"); // Start marker
+            Serial2.print(angles.theta1, 2);
+            Serial2.print(",");
+            Serial2.print(angles.theta2, 2);
+            Serial2.println(">"); // End marker
+            delay(50);//
             
+
             // Command motors to move
             if (motor1) motor1->moveToAngle(angles.theta1);
             if (motor2) motor2->moveToAngle(angles.theta2);
@@ -290,6 +304,7 @@ void TestInteractive::executeMove(const Point2D& start,
         // Show final angles
         Serial.println();
         printAngles(JointAngles(motor1->getCurrentAngle(), motor2->getCurrentAngle()), "Final angles");
+        //printPoint(point)
         Serial.println();
     }
 }

@@ -15,7 +15,7 @@
 // ============================================================================
 // Arm lengths in millimeters
 #define ARM_LENGTH_1 150.0f // Length of first link (base to elbow)
-#define ARM_LENGTH_2 150.0f // Length of second link (elbow to end effector)
+#define ARM_LENGTH_2 115.0f // Length of second link (elbow to end effector)
 
 // Workspace limits (SCARA half-circle workspace)
 // The robot sits at the origin (0,0) and can reach a half-annulus
@@ -32,10 +32,10 @@
 #define WORKSPACE_R_MIN 50.0f // Minimum reach - prevents arm folding on itself
 
 // Joint angle limits (degrees, measured from +X axis, CCW positive)
-#define THETA1_MIN -20.0f // Slightly past +X axis (clockwise)
-#define THETA1_MAX 200.0f // Slightly past -X axis (counter-clockwise)
-#define THETA2_MIN 0.0f   // Fully extended
-#define THETA2_MAX 170.0f // Practical folding limit
+#define THETA1_MIN 0.0f // Slightly past +X axis (clockwise)
+#define THETA1_MAX 180.0f // Slightly past -X axis (counter-clockwise)
+#define THETA2_MIN -150.0f   // Fully extended
+#define THETA2_MAX 150.0f // Practical folding limit
 
 // Home position: arm fully extended upward (+Y direction)
 #define HOME_X 0.0f
@@ -69,6 +69,10 @@
 
 // Tool output (relay, plasma torch trigger, etc.)
 #define TOOL_PIN 26 // GPIO for tool control relay
+
+// Serial communication with OpenRB150
+#define RXD2 16
+#define TXD2 17
 
 // ============================================================================
 // Motion Control Parameters
@@ -110,6 +114,7 @@
 // Debug Configuration
 // ============================================================================
 #define SERIAL_BAUD_RATE 115200
+#define SERIAL_OPENRB_BAUD_RATE 115200
 #define DEBUG_KINEMATICS false
 #define DEBUG_PLANNER false
 #define DEBUG_MOTOR false
@@ -122,6 +127,6 @@
 // Set to true to run only visual tests (detailed output, no pass/fail)
 #define RUN_VISUAL_TESTS false
 // Set to true to run interactive integration test with real motors
-#define RUN_INTERACTIVE_TEST false
+#define RUN_INTERACTIVE_TEST true
 
 #endif // CONFIG_H
