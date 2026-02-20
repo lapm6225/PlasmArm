@@ -64,7 +64,7 @@
             <item>
              <layout class="QHBoxLayout" name="horizontalLayout_5">
               <item>
-               <widget class="QLabel" name="label_4">
+               <widget class="QLabel" name="label_linear_speed">
                 <property name="text">
                  <string>Vitesse linéaire:</string>
                 </property>
@@ -162,14 +162,14 @@
           <item row="1" column="0">
            <layout class="QGridLayout" name="gridLayout_2">
             <item row="0" column="0">
-             <widget class="QLabel" name="label">
+             <widget class="QLabel" name="label_shoulder">
               <property name="text">
                <string>Bras 1</string>
               </property>
              </widget>
             </item>
             <item row="1" column="0">
-             <widget class="QToolButton" name="Bras1_Antihoraire">
+             <widget class="QToolButton" name="Shoulder_Antihoraire">
               <property name="minimumSize">
                <size>
                 <width>40</width>
@@ -195,7 +195,7 @@
              </widget>
             </item>
             <item row="1" column="1">
-             <widget class="QToolButton" name="Bras1_Horaire">
+             <widget class="QToolButton" name="Shoulder_Horaire">
               <property name="minimumSize">
                <size>
                 <width>40</width>
@@ -208,7 +208,7 @@
              </widget>
             </item>
             <item row="2" column="0">
-             <widget class="QLabel" name="label_2">
+             <widget class="QLabel" name="label_elbow">
               <property name="text">
                <string>Bras 2</string>
               </property>
@@ -232,7 +232,7 @@
           <item row="0" column="0">
            <layout class="QHBoxLayout" name="horizontalLayout_2">
             <item>
-             <widget class="QLabel" name="label_3">
+             <widget class="QLabel" name="label_angular_speed">
               <property name="text">
                <string>Vitesse angulaire:</string>
               </property>
@@ -296,9 +296,9 @@
          </spacer>
         </item>
         <item>
-         <widget class="QPushButton" name="pushButton_9">
+         <widget class="QPushButton" name="Button_DXF">
           <property name="text">
-           <string>Générer G-code</string>
+           <string>Générer DXF</string>
           </property>
          </widget>
         </item>
