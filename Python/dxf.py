@@ -167,7 +167,7 @@ def load_dxf_into_scene(window, scene, view, filename):
     # --- Centrage initial ---
     bbox = window.dxf_group.boundingRect()
 
-    scene_center_x = 350
+    scene_center_x = 400
     scene_center_y = 300
 
     dxf_center_x = bbox.x() + bbox.width() / 2

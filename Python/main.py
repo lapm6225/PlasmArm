@@ -21,7 +21,7 @@ tool_raised = True # true == levé / false == baissé
 
 Arm = namedtuple("Arm", ["length", "width"])
 bicep = Arm(150, 20)
-forearm = Arm(164.15, 20)
+forearm = Arm(167.6, 20)
 
 tool_pos = Position(forearm.length+bicep.length, 0) 
 
@@ -30,18 +30,18 @@ origin = Position(400, 400)
 
 # Vérification des limites du bras
 def limit(shoulder, elbow):
-    if elbow > 135 or elbow <- 135:
+    if elbow > 155 or elbow <- 155:
         dxf.add_text(window, "Max elbow angle reached")
         return False
     
-    if shoulder > 34 or shoulder < -214:
+    if shoulder > 0 or shoulder < -180:
         dxf.add_text(window, "Max elbow angle reached")
         return False
     
     x = bicep.length*math.cos(shoulder*math.pi/180)+forearm.length*math.cos((shoulder+elbow)*math.pi/180)
     y = bicep.length*math.sin(shoulder*math.pi/180)+forearm.length*math.sin((shoulder+elbow)*math.pi/180)
 
-    if math.sqrt(pow(x,2)+pow(y,2))>314.3:
+    if math.sqrt(pow(x,2)+pow(y,2))>bicep.length+forearm.length:
         dxf.add_text(window, "Out of bounds")
         return False
     
@@ -98,7 +98,7 @@ def go_home():
     global shoulder_angle
     global elbow_angle
     shoulder_angle =0
-    elbow_angle = -170
+    elbow_angle = -154
     animator.setAngle(shoulder_angle)
     animator_elbow.setAngle(elbow_angle)
 #-----------------------------
@@ -187,7 +187,6 @@ def elbow_counterclockwise():
         elbow_angle= temp_angle
     animator_elbow.setAngle(elbow_angle)
 #------------------------------------------------------------------------
-    
 
 ##########################
 # MAIN
