@@ -1,14 +1,7 @@
-from PyQt6 import QtWidgets, uic
-from PyQt6.QtWidgets import QGraphicsScene, QGraphicsRectItem, QGraphicsEllipseItem, QGraphicsLineItem, QGraphicsItem, QLineEdit, QFileDialog 
-from PyQt6.QtCore import QObject, pyqtProperty, QPropertyAnimation, QRectF, Qt, QPointF
+from PyQt6.QtWidgets import QGraphicsEllipseItem
+from PyQt6.QtCore import QObject, pyqtProperty, Qt
 from PyQt6.QtGui import QPen 
-import ezdxf
-import os
-import sys
-import math
-from collections import namedtuple
-from pathlib import Path
-import dxf
+
 
 class AngleAnimator(QObject):
     def __init__(self, graphics_item):
@@ -55,7 +48,7 @@ def generate_scene(window, scene, bicep, forearm, origin, elbow, shoulder):
     arc_max.setZValue(1000)
 
     # --- Affichage porté min ---
-    arc_min = QGraphicsEllipseItem(280, 290, 240, 240)
+    arc_min = QGraphicsEllipseItem(329, 339, 142, 142)
     scene.addItem(arc_min)
     arc_min.setStartAngle(0)
     arc_min.setSpanAngle(180 * 16)
