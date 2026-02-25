@@ -73,7 +73,10 @@ void TestInteractive::printHelp() {
     Serial.println("\nCommands:");
     Serial.println("  x,y          - Move to position (e.g., '200,150')");
     Serial.println("  move x,y     - Same as above");
+    Serial.println("  angle t1,t2     - ");
     Serial.println("  home         - Move to home position (0,0)");
+    Serial.println("  set-home         - Deactivate motor to mannually home");
+    Serial.println("  save-home         - Save home angles");
     Serial.println("  pos          - Show current position and angles");
     Serial.println("  test         - Run test sequence");
     Serial.println("  help         - Show this help");
@@ -110,6 +113,19 @@ void TestInteractive::processCommand(const String& command,
                 Serial.printf("Motor 2 moving: %s\n", motor2->isMoving() ? "YES" : "NO");
             }
         }
+        return;
+    }
+
+    if( cmd == "set-home"){
+        Serial.println("Mode set-home activated");
+        Serial.println("You can now mannualy move the robot to the angle (0,0) position");
+        Serial2.println("<SET HOME>");
+        return;
+    }
+
+    if(cmd == "save-home"){
+        Serial2.println("<SAVE HOME>");
+        Serial.println("Angles (0,0) have been saved");
         return;
     }
     

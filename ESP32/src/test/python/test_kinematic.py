@@ -3,7 +3,7 @@ import numpy as np
 
 
 L1=150
-L2=150
+L2=167.65
 choice=int(input("direct:1 \nreverse:2\n"))
 if choice==1:
     theta1=np.deg2rad(float(input("theta1: ")))#en radian

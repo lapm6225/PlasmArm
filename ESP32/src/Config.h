@@ -15,7 +15,7 @@
 // ============================================================================
 // Arm lengths in millimeters
 #define ARM_LENGTH_1 150.0f // Length of first link (base to elbow)
-#define ARM_LENGTH_2 115.0f // Length of second link (elbow to end effector)
+#define ARM_LENGTH_2 167.65f // Length of second link (elbow to end effector)
 
 // Workspace limits (SCARA half-circle workspace)
 // The robot sits at the origin (0,0) and can reach a half-annulus

@@ -92,6 +92,7 @@ bool Kinematics::isReachable(const Point2D &point) {
   float r = sqrt(point.x * point.x + point.y * point.y);
 
   // Check circular boundaries
+  /*
   if (r > (L1 + L2) || r < WORKSPACE_R_MIN) {
     return false;
   }
@@ -100,7 +101,7 @@ bool Kinematics::isReachable(const Point2D &point) {
   // Allow y slightly below 0 to handle points at (300, 0) and (-300, 0)
   if (point.y < -1.0f) {
     return false;
-  }
+  }*/
 
   // Full validation: try computing IK and check angle limits
   JointAngles testAngles;
