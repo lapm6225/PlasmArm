@@ -73,7 +73,7 @@ void TestInteractive::printHelp() {
     Serial.println("\nCommands:");
     Serial.println("  x,y          - Move to position (e.g., '200,150')");
     Serial.println("  move x,y     - Same as above");
-    Serial.println("  angle t1,t2     - ");
+    Serial.println("  angle t1,t2     - Move angles (t1,t2)");
     Serial.println("  home         - Move to home position (0,0)");
     Serial.println("  set-home         - Deactivate motor to mannually home");
     Serial.println("  save-home         - Save home angles");
@@ -160,6 +160,49 @@ void TestInteractive::processCommand(const String& command,
             }
         }
         Serial.println("\n✅ Test sequence completed!");
+        return;
+    }
+    
+    if (cmd.startsWith("angle ")) {
+        cmd = cmd.substring(6);
+        int commaIndex = cmd.indexOf(',');
+        if (commaIndex > 0) {
+            float t1 = cmd.substring(0, commaIndex).toFloat();
+            float t2 = cmd.substring(commaIndex + 1).toFloat();
+            
+            Serial.printf("\n═══════════════════════════════════════════════════════════\n");
+            Serial.printf("MOVING TO ANGLES: %.2f°, %.2f°\n", t1, t2);
+            Serial.printf("═══════════════════════════════════════════════════════════\n\n");
+            
+            Serial2.print("<");
+            Serial2.print(t1, 2);
+            Serial2.print(",");
+            Serial2.print(t2, 2);
+            Serial2.println(">");
+            
+
+            // now this part is on openRB
+            if (motor1) motor1->moveToAngle(t1);
+            if (motor2) motor2->moveToAngle(t2);
+            
+            // Update motors to allow movement
+            if (motor1 && motor2) {
+                for (int i = 0; i < 10; i++) {
+                    motor1->update();
+                    motor2->update();
+                    delay(1);
+                }
+            }
+            
+            // Update currentPos based on new angles using forward kinematics
+            JointAngles angles(t1, t2);
+            kin.forward(angles, currentPos);
+            
+            Serial.println("\n✅ Angle command completed!");
+            Serial.println("═══════════════════════════════════════════════════════════\n");
+        } else {
+            Serial.println("❌ Invalid format. Use 'angle t1,t2'");
+        }
         return;
     }
     
