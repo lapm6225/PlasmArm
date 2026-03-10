@@ -19,21 +19,23 @@ shoulder_angle = 0 # degrés
 elbow_angle = 0 # degrés
 tool_raised = True # true == levé / false == baissé
 
+# --- Données de dimension des bras --- 
 Arm = namedtuple("Arm", ["length", "width"])
 bicep = Arm(150, 20)
 forearm = Arm(167.6, 20)
-
-tool_pos = Position(forearm.length+bicep.length, 0) 
-
+# --- Données de position ---
 Position = namedtuple("Position", ["x", "y"])
+tool_pos = Position(forearm.length+bicep.length, 0) 
 origin = Position(400, 400)
 
 # Vérification des limites du bras
 def limit(shoulder, elbow):
+    # Angle max du 2e bras
     if elbow > 155 or elbow <- 155:
         dxf.add_text(window, "Max elbow angle reached")
         return False
     
+    # Angle max du 1e bras
     if shoulder > 0 or shoulder < -180:
         dxf.add_text(window, "Max elbow angle reached")
         return False
@@ -41,36 +43,40 @@ def limit(shoulder, elbow):
     x = bicep.length*math.cos(shoulder*math.pi/180)+forearm.length*math.cos((shoulder+elbow)*math.pi/180)
     y = bicep.length*math.sin(shoulder*math.pi/180)+forearm.length*math.sin((shoulder+elbow)*math.pi/180)
 
+    # Distance max
     if math.sqrt(pow(x,2)+pow(y,2))>bicep.length+forearm.length:
         dxf.add_text(window, "Out of bounds")
         return False
     
+    # Limite du plan
     if y > 0:
         dxf.add_text(window, "Out of range in Y axis")
         print("test")
         return False
     
+    # Actualisation de la position de l'effecteur
     else:
         x=round(x,2)
         y=round(y,2)
+        # Affichage
         text = f"Position de l'effecteur: ({x}, {-y})"
         dxf.add_text(window, text )
         return True
 
 
-# --- Changer les vitesse en mode manuel. ---
+# --- Changer les vitesse en mode manuel ---
 def change_angular_speed():
     global angular_speed
-    text = window.edit_angular_speed.text()
+    text = window.edit_angular_speed.text() # lecture du texte
     angular_speed = float(text) if text else 1
 
 def change_linear_speed():
     global linear_speed
-    text = window.edit_linear_speed.text()
+    text = window.edit_linear_speed.text() # lecture du texte
     linear_speed = float(text) if text else 1
 # -------------------------------------------
 
-# --- forcer float -----------------------------------------------------
+# --- forcer float pour lire la valeur de vitesse -----------------------------
 def enforce_float_only(line_edit: QLineEdit):
     def clean(text):
         allowed = "0123456789.-"
@@ -117,6 +123,7 @@ def open_file():
 def close_file():
     dxf.close_file(window, scene)
 
+# --- Monter l'outil ---
 def tool_up():
     global tool_raised
     if tool_raised == True:
@@ -125,6 +132,7 @@ def tool_up():
         tool_raised = True
         dxf.add_text(window, "Tool raised")
 
+# --- Descendre l'outil ---
 def tool_down():
     global tool_raised
     if tool_raised == False:
@@ -133,7 +141,7 @@ def tool_down():
         tool_raised = False
         dxf.add_text(window, "Tool lowered")
 
-# --- mouvement linéaire ---
+# --- mouvement linéaire selon la vitesse linéaire ---
 def move_forward():
     global tool_pos
     y = tool_pos.y - linear_speed
@@ -158,7 +166,7 @@ def move_left():
     tool_pos.x = x
     print(tool_pos.x, tool_pos.y)
 
-# --- mouvement angulaire ---
+# --- mouvement angulaire selon la vitesse angulaire---
 def shoulder_clockwise():
     global shoulder_angle, angular_speed
     temp_angle = shoulder_angle + angular_speed
@@ -192,12 +200,12 @@ def elbow_counterclockwise():
 # MAIN
 ##########################
 if __name__ == '__main__':
-    
+    # initialisation de l'appli
     app = QtWidgets.QApplication(sys.argv)
-
     window = QtWidgets.QMainWindow()
     uic.loadUi('plasmarm.ui', window)
     
+    # initialisation des éléments de l'interface
     window.graphicsView.setDragMode(QtWidgets.QGraphicsView.DragMode.NoDrag)
     window.progressBar.setValue(0)
 
@@ -235,7 +243,7 @@ if __name__ == '__main__':
     enforce_float_only(window.edit_angular_speed)
     enforce_float_only(window.edit_linear_speed)
     
-    # Génération de la scène --- 
+    # Génération de la scène pour l'affichage--- 
     scene = QGraphicsScene()
     shoulder = QGraphicsRectItem(QRectF(0, 0, bicep.length, bicep.width))
     elbow = QGraphicsRectItem(QRectF(0, 0, forearm.length, forearm.width))
@@ -243,5 +251,6 @@ if __name__ == '__main__':
     animator_elbow = animation.AngleAnimator(elbow)
     animation.generate_scene(window, scene, bicep, forearm, origin, elbow, shoulder)
    
+    # Démarer l'application
     window.show()
     sys.exit(app.exec())

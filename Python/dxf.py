@@ -4,6 +4,7 @@ from PyQt6.QtCore import  Qt, QPointF
 from PyQt6.QtGui import QPen 
 import ezdxf
 import os
+# --- Limite de ligne pour le "debug" --- posibilité de suppression
 def max_lines(window):
     text = window.textEdit.toPlainText()
     lines = text.split("\n")
@@ -11,6 +12,7 @@ def max_lines(window):
     trimmed_text = "\n".join(new_lines)
     window.textEdit.setPlainText(trimmed_text)
 
+# --- Ajout de ligne dans le "debug" ---
 def add_text(window,text):
     window.textEdit.append(text)
     text = window.textEdit.toPlainText()
@@ -28,6 +30,7 @@ def func_print(window):
     if hasattr(window, "dxf_group"):
         for item in window.dxf_group.childItems():
             if isinstance(item, QGraphicsLineItem):
+                # --- Création des segments
                 line = item.line()
                 p1 = item.mapToScene(line.p1())
                 p2 = item.mapToScene(line.p2())
@@ -39,9 +42,8 @@ def func_print(window):
                 msp.add_line((p1_robot.x(), -p1_robot.y()), (p2_robot.x(), -p2_robot.y()))
 
         doc.saveas("export_robot.dxf")
-        # window.textEdit.append("DXF file generated")
-        # max_lines(window)
         add_text(window, "DXF file generated")
+    # --- Execption si aucun DXF n'est chargé ---
     else:
         QtWidgets.QMessageBox.warning(window, "Erreur", "Aucun DXF à imprimer")
 # --------------------------------------------
@@ -61,7 +63,7 @@ def open_file(window,scene):
         if réponse == QtWidgets.QMessageBox.StandardButton.No:
             return  # L'utilisateur annule
 
-        # L'utilisateur accepte → supprimer l'ancien DXF
+        # Fermer le fichier d'abord
         close_file(window, scene)
 
     # Ouvrir un nouveau fichier
@@ -71,7 +73,7 @@ def open_file(window,scene):
         "",
         "Fichiers DXF (*.dxf)"
     )
-
+    # charger le fichier sélectionné et l'écrire dans le "debug"
     if filename:
         print("Fichier choisi :", filename)
         #window.textEdit.append(os.path.basename(filename))
@@ -81,23 +83,24 @@ def open_file(window,scene):
 
 # --- Fermer le fichier ---
 def close_file(window,scene):
+    # vérifier si un fichier est ouvert ou non
     if hasattr(window, "dxf_group"):
         scene.removeItem(window.dxf_group)
         del window.dxf_group
         #window.textEdit.append("File closed")
         add_text(window, "File closed")
+    # Cas sans fichier ouvert
     else:
         QtWidgets.QMessageBox.warning(window, "Erreur", "Aucun DXF à fermer.")
 # --------------------------
 
 # --- DXF loader ---
 def load_dxf_into_scene(window, scene, view, filename):
+    # Initialization
     doc = ezdxf.readfile(filename)
     msp = doc.modelspace()
-
     pen = QPen(Qt.GlobalColor.black)
     pen.setWidth(1)
-
     count = 0
 
     # --- Groupe DXF déplaçable ---
@@ -107,7 +110,7 @@ def load_dxf_into_scene(window, scene, view, filename):
         #print("TYPE DXF:", entity.dxftype())
         if entity.dxftype() == "SPLINE":
 
-            # Reconstruction propre de la spline
+            # Reconstruction propre des spline
             try:
                 tool = entity.construction_tool()
                 points = list(tool.approximate(200))
@@ -127,6 +130,7 @@ def load_dxf_into_scene(window, scene, view, filename):
                 line.setPen(pen)
                 window.dxf_group.addToGroup(line)
                 count += 1
+        # Reconstruction de lignes
         if entity.dxftype() == "LINE":
             x1, y1, _ = entity.dxf.start
             x2, y2, _ = entity.dxf.end
@@ -135,6 +139,7 @@ def load_dxf_into_scene(window, scene, view, filename):
             line.setPen(pen)
             window.dxf_group.addToGroup(line)
             count += 1
+        # Reconstruction de polyline
         if entity.dxftype() == "LWPOLYLINE":
             pts = entity.get_points()  # liste de tuples (x, y, [bulge])
 
@@ -167,15 +172,19 @@ def load_dxf_into_scene(window, scene, view, filename):
     # --- Centrage initial ---
     bbox = window.dxf_group.boundingRect()
 
+    # Point de centrage
     scene_center_x = 400
     scene_center_y = 300
 
+    # Centre du DXF
     dxf_center_x = bbox.x() + bbox.width() / 2
     dxf_center_y = bbox.y() + bbox.height() / 2
 
+    # Centrage du centre du DXF
     dx = scene_center_x - dxf_center_x
     dy = scene_center_y - dxf_center_y
 
+    # Déplacement
     window.dxf_group.moveBy(dx, dy)
 
     return window.dxf_group
