@@ -4,14 +4,7 @@ from PyQt6.QtCore import  Qt, QPointF
 from PyQt6.QtGui import QPen 
 import ezdxf
 import os
-# --- Limite de ligne pour le "debug" --- posibilité de suppression
-def max_lines(window):
-    text = window.textEdit.toPlainText()
-    lines = text.split("\n")
-    new_lines = lines[-20:]
-    trimmed_text = "\n".join(new_lines)
-    window.textEdit.setPlainText(trimmed_text)
-
+import check_dxf
 # --- Ajout de ligne dans le "debug" ---
 def add_text(window,text):
     window.textEdit.append(text)
@@ -22,11 +15,16 @@ def add_text(window,text):
     window.textEdit.setPlainText(trimmed_text)
 
 
-# --- Qui print un DXF centré ---
-def func_print(window):
+# --- Qui génère un DXF centré ---
+def func_DXF(window, scene):
     doc = ezdxf.new()
     msp = doc.modelspace()
-    origin_bras = QPointF(400, 450)
+    origin_bras = QPointF(400, 410)
+    if hasattr(window, "dxf_preview"):
+        scene.removeItem(window.dxf_preview)
+    window.dxf_preview = scene.createItemGroup([])
+    pen = QPen(Qt.GlobalColor.gray)
+    pen.setWidth(1)
     if hasattr(window, "dxf_group"):
         for item in window.dxf_group.childItems():
             if isinstance(item, QGraphicsLineItem):
@@ -37,12 +35,25 @@ def func_print(window):
 
                 # Convertir dans référentiel bras
                 p1_robot = p1 - origin_bras
-                p2_robot = p2 - origin_bras
-
+                p2_robot = p2 - origin_bras               
                 msp.add_line((p1_robot.x(), -p1_robot.y()), (p2_robot.x(), -p2_robot.y()))
-
+                x1, y1 = p1_robot.x(), p1_robot.y()
+                x2, y2 = p2_robot.x(), p2_robot.y()
+                line = QGraphicsLineItem(400+x1, 410+y1, 400+x2, 410+y2)
+                line.setPen(pen)
+                line.setZValue(-10)  # derrière
+                line.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, False)
+                line.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsMovable, False)
+                window.dxf_preview.addToGroup(line)
         doc.saveas("export_robot.dxf")
-        add_text(window, "DXF file generated")
+        if check_dxf.check() == False:
+            add_text(window, "Out of Bounds")
+            scene.removeItem(window.dxf_preview)
+            del window.dxf_preview
+        else :
+            add_text(window, "DXF file generated")
+            scene.removeItem(window.dxf_group)        
+
     # --- Execption si aucun DXF n'est chargé ---
     else:
         QtWidgets.QMessageBox.warning(window, "Erreur", "Aucun DXF à imprimer")
@@ -85,8 +96,12 @@ def open_file(window,scene):
 def close_file(window,scene):
     # vérifier si un fichier est ouvert ou non
     if hasattr(window, "dxf_group"):
-        scene.removeItem(window.dxf_group)
+        if window.dxf_group.scene() is not None:
+            scene.removeItem(window.dxf_group)
         del window.dxf_group
+        if hasattr(window, "dxf_preview"):
+            scene.removeItem(window.dxf_preview)
+            del window.dxf_preview
         #window.textEdit.append("File closed")
         add_text(window, "File closed")
     # Cas sans fichier ouvert

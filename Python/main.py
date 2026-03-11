@@ -6,6 +6,8 @@ import math
 from collections import namedtuple
 import dxf
 import animation
+from dxf_parser import DxfParser
+
 
 # --- Variables Globales ---
 class Position:
@@ -23,6 +25,7 @@ tool_raised = True # true == levé / false == baissé
 Arm = namedtuple("Arm", ["length", "width"])
 bicep = Arm(150, 20)
 forearm = Arm(167.6, 20)
+
 # --- Données de position ---
 Position = namedtuple("Position", ["x", "y"])
 tool_pos = Position(forearm.length+bicep.length, 0) 
@@ -112,8 +115,8 @@ def go_home():
 
 # Fonctions boutons -------------------------------------------
 # --- Générer un dxf par rapport à l'origine ---
-def func_print():
-    dxf.func_print(window)
+def func_DXF():
+    dxf.func_DXF(window,scene)
 
 # --- Ouvrir un fichier ---
 def open_file():
@@ -196,6 +199,21 @@ def elbow_counterclockwise():
     animator_elbow.setAngle(elbow_angle)
 #------------------------------------------------------------------------
 
+# --- Imprimer ---
+def func_print():
+    if hasattr(window, "dxf_preview"):
+        dxf.add_text(window, "Début de la découpe")
+        cut=DxfParser("export_robot.dxf")
+        command = cut.parse()
+        cut.print_preview(command)
+    # transmettre command  au esp32
+# ----------------
+
+# --- Arrêt ---
+def func_stop():
+    dxf.add_text(window, "Arrêt de la découpe")
+# -------------
+
 ##########################
 # MAIN
 ##########################
@@ -211,10 +229,10 @@ if __name__ == '__main__':
 
     # Connection aux éléments graphiques ---
     # --- Boutons principaux
-    window.Button_DXF.clicked.connect(func_print)
+    window.Button_DXF.clicked.connect(func_DXF)
     window.Button_Home.clicked.connect(go_home)
-    #window.Button_Print.clicked.connect()
-    #window.Button_Stop.clicked.connect()
+    window.Button_Print.clicked.connect(func_print)
+    window.Button_Stop.clicked.connect(func_stop)
 
     # --- Boutons Rotation ---
     window.Shoulder_Horaire.clicked.connect(shoulder_clockwise)
