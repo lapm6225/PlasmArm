@@ -25,7 +25,9 @@
 #include "core/Kinematics.h"
 #include "core/Planner.h"
 #include "core/Types.h"
-#include "hardware/DynamixelController.h"
+#include "hardware/IMotor.h"
+#include "hardware/ServoMotor.h"
+#include "hardware/StepperMotor.h"
 #include "web/WebServer.h"
 #include <queue> // For std::queue in planner task
 
@@ -41,8 +43,9 @@ Kinematics kinematics(ARM_LENGTH_1, ARM_LENGTH_2);
 Planner planner(DEFAULT_SPEED, ACCELERATION);
 RobotState robotState;
 
-// Motor instance
-DynamixelController *dxlCtrl = nullptr;
+// Motor instances (using StepperMotor by default, can be changed to ServoMotor)
+IMotor *motor1 = nullptr;
+IMotor *motor2 = nullptr;
 
 WebServer webServer;
 
@@ -113,12 +116,15 @@ void setup() {
   // Initialize hardware
   Serial.println("Initializing hardware...");
 
-  // Create motor instances
-  dxlCtrl = new DynamixelController(Serial2);
+  // Create motor instances (StepperMotor implementation)
+  motor1 = new StepperMotor(MOTOR1_STEP_PIN, MOTOR1_DIR_PIN, MOTOR1_ENABLE_PIN);
+  motor2 = new StepperMotor(MOTOR2_STEP_PIN, MOTOR2_DIR_PIN, MOTOR2_ENABLE_PIN);
 
   // Initialize motors
-  dxlCtrl->init();
-  dxlCtrl->setTorque(true);
+  motor1->init();
+  motor2->init();
+  motor1->enable();
+  motor2->enable();
 
   Serial.println("Motors initialized");
 
@@ -432,7 +438,8 @@ void taskMotionControl(void *parameter) {
       Point2D targetXY = target.toPoint2D();
       if (kinematics.inverse(targetXY, targetAngles)) {
         // Command motors to move to target angles
-        if(dxlCtrl) dxlCtrl->syncWriteAngles(targetAngles.theta1, targetAngles.theta2);
+        motor1->moveToAngle(targetAngles.theta1);
+        motor2->moveToAngle(targetAngles.theta2);
 
         robotState.currentAngles = targetAngles;
         robotState.currentPosition = targetXY;
@@ -455,11 +462,12 @@ void taskMotionControl(void *parameter) {
       }
     } else {
       // No new target, maintain current position
-      robotState.isMoving = dxlCtrl ? dxlCtrl->isMoving() : false;
+      robotState.isMoving = (motor1->isMoving() || motor2->isMoving());
     }
 
-    // Update motors
-    if (dxlCtrl) dxlCtrl->update();
+    // Update motors (generate steps for steppers, update PWM for servos)
+    motor1->update();
+    motor2->update();
 
     // Broadcast status + position log (throttled to 2/sec)
     unsigned long now = millis();

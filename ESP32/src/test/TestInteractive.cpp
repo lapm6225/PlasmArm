@@ -2,11 +2,11 @@
 #include "../Config.h"
 #include <Arduino.h>
 
-void TestInteractive::run(IMotor* motor1, IMotor* motor2) {
+void TestInteractive::run(DynamixelController* dxlCtrl) {
     Serial.println("\n\n");
     Serial.println("╔══════════════════════════════════════════════════════════╗");
-    Serial.println("║      INTERACTIVE INTEGRATION TEST                       ║");
-    Serial.println("║      With Real Stepper Motors                           ║");
+    Serial.println("║      INTERACTIVE INTEGRATION TEST                        ║");
+    Serial.println("║      With Real Dy s                          ║");
     Serial.println("╚══════════════════════════════════════════════════════════╝");
     Serial.println();
     
@@ -15,10 +15,10 @@ void TestInteractive::run(IMotor* motor1, IMotor* motor2) {
     Planner planner(DEFAULT_SPEED, ACCELERATION);
     
     // Initialize motors
-    if (motor1) motor1->init();
-    if (motor2) motor2->init();
-    if (motor1) motor1->enable();
-    if (motor2) motor2->enable();
+    if (dxlCtrl) {
+        dxlCtrl->init();
+        dxlCtrl->setTorque(true);
+    }
     
     Serial.println("Motors initialized and enabled");
     Serial.printf("Arm lengths: L1=%.1f mm, L2=%.1f mm\n", ARM_LENGTH_1, ARM_LENGTH_2);
@@ -30,8 +30,7 @@ void TestInteractive::run(IMotor* motor1, IMotor* motor2) {
     // Calculate initial angles
     JointAngles initialAngles;
     if (kin.inverse(currentPos, initialAngles)) {
-        if (motor1) motor1->moveToAngle(initialAngles.theta1);
-        if (motor2) motor2->moveToAngle(initialAngles.theta2);
+        if (dxlCtrl) dxlCtrl->syncWriteAngles(initialAngles.theta1, initialAngles.theta2);
         Serial.println("Initial position set");
         printPoint(currentPos, "Current position");
         Serial.println();
@@ -48,8 +47,7 @@ void TestInteractive::run(IMotor* motor1, IMotor* motor2) {
     
     while (true) {
         // Update motors
-        if (motor1) motor1->update();
-        if (motor2) motor2->update();
+        if (dxlCtrl) dxlCtrl->update();
         
         // Check for serial input
         while (Serial.available() > 0) {
@@ -57,7 +55,7 @@ void TestInteractive::run(IMotor* motor1, IMotor* motor2) {
             
             if (c == '\n' || c == '\r') {
                 if (inputBuffer.length() > 0) {
-                    processCommand(inputBuffer, kin, planner, motor1, motor2, currentPos);
+                    processCommand(inputBuffer, kin, planner, dxlCtrl, currentPos);
                     inputBuffer = "";
                 }
             } else {
@@ -86,8 +84,7 @@ void TestInteractive::printHelp() {
 void TestInteractive::processCommand(const String& command, 
                                     Kinematics& kin, 
                                     Planner& planner,
-                                    IMotor* motor1, 
-                                    IMotor* motor2,
+                                    DynamixelController* dxlCtrl,
                                     Point2D& currentPos) {
     String cmd = command;
     cmd.trim();
@@ -106,11 +103,10 @@ void TestInteractive::processCommand(const String& command,
             printAngles(angles, "Current angles");
             Serial.println();
             
-            if (motor1 && motor2) {
-                Serial.printf("Motor 1 angle: %.2f°\n", motor1->getCurrentAngle());
-                Serial.printf("Motor 2 angle: %.2f°\n", motor2->getCurrentAngle());
-                Serial.printf("Motor 1 moving: %s\n", motor1->isMoving() ? "YES" : "NO");
-                Serial.printf("Motor 2 moving: %s\n", motor2->isMoving() ? "YES" : "NO");
+            if (dxlCtrl) {
+                Serial.printf("Motor 1 angle: %.2f°\n", dxlCtrl->getAngle(DynamixelController::ID_M1));
+                Serial.printf("Motor 2 angle: %.2f°\n", dxlCtrl->getAngle(DynamixelController::ID_M2));
+                Serial.printf("Motors moving: %s\n", dxlCtrl->isMoving() ? "YES" : "NO");
             }
         }
         return;
@@ -119,18 +115,18 @@ void TestInteractive::processCommand(const String& command,
     if( cmd == "set-home"){
         Serial.println("Mode set-home activated");
         Serial.println("You can now mannualy move the robot to the angle (0,0) position");
-        Serial2.println("<SET HOME>");
+        if (dxlCtrl) dxlCtrl->setHomeMode();
         return;
     }
 
     if(cmd == "save-home"){
-        Serial2.println("<SAVE HOME>");
+        if (dxlCtrl) dxlCtrl->saveHome();
         Serial.println("Angles (0,0) have been saved");
         return;
     }
     
     if (cmd == "home") {
-        executeMove(currentPos, Point2D(0, 0), kin, planner, motor1, motor2, true);
+        executeMove(currentPos, Point2D(0, 0), kin, planner, dxlCtrl, true);
         currentPos = Point2D(0, 0);
         return;
     }
@@ -146,14 +142,13 @@ void TestInteractive::processCommand(const String& command,
         
         for (int i = 0; i < 4; i++) {
             Serial.printf("\n--- Test move %d/%d ---\n", i + 1, 4);
-            executeMove(currentPos, testPoints[i], kin, planner, motor1, motor2, true);
+            executeMove(currentPos, testPoints[i], kin, planner, dxlCtrl, true);
             currentPos = testPoints[i];
             
             // Wait for movement to complete
-            if (motor1 && motor2) {
-                while (motor1->isMoving() || motor2->isMoving()) {
-                    motor1->update();
-                    motor2->update();
+            if (dxlCtrl) {
+                while (dxlCtrl->isMoving()) {
+                    dxlCtrl->update();
                     delay(10);
                 }
                 delay(1000);  // Pause between moves
@@ -174,22 +169,12 @@ void TestInteractive::processCommand(const String& command,
             Serial.printf("MOVING TO ANGLES: %.2f°, %.2f°\n", t1, t2);
             Serial.printf("═══════════════════════════════════════════════════════════\n\n");
             
-            Serial2.print("<");
-            Serial2.print(t1, 2);
-            Serial2.print(",");
-            Serial2.print(t2, 2);
-            Serial2.println(">");
-            
-
-            // now this part is on openRB
-            if (motor1) motor1->moveToAngle(t1);
-            if (motor2) motor2->moveToAngle(t2);
+            if (dxlCtrl) dxlCtrl->syncWriteAngles(t1, t2);
             
             // Update motors to allow movement
-            if (motor1 && motor2) {
+            if (dxlCtrl) {
                 for (int i = 0; i < 10; i++) {
-                    motor1->update();
-                    motor2->update();
+                    dxlCtrl->update();
                     delay(1);
                 }
             }
@@ -234,7 +219,7 @@ void TestInteractive::processCommand(const String& command,
         printPoint(target, "To");
         Serial.println();
         
-        executeMove(currentPos, target, kin, planner, motor1, motor2, true);
+        executeMove(currentPos, target, kin, planner, dxlCtrl, true);
         currentPos = target;
         
         Serial.println("\n✅ Movement command completed!");
@@ -249,8 +234,7 @@ void TestInteractive::executeMove(const Point2D& start,
                                   const Point2D& target,
                                   Kinematics& kin,
                                   Planner& planner,
-                                  IMotor* motor1,
-                                  IMotor* motor2,
+                                  DynamixelController* dxlCtrl,
                                   bool showDetails) {
     // Check if target is reachable
     if (!kin.isReachable(target)) {
@@ -303,24 +287,14 @@ void TestInteractive::executeMove(const Point2D& start,
                             accurate ? "✅" : "❌");
             }
             //test communication Serie
-            Serial2.print("<"); // Start marker
-            Serial2.print(angles.theta1, 2);
-            Serial2.print(",");
-            Serial2.print(angles.theta2, 2);
-            Serial2.println(">"); // End marker
-            delay(50);//
-            
-
             // Command motors to move
-            if (motor1) motor1->moveToAngle(angles.theta1);
-            if (motor2) motor2->moveToAngle(angles.theta2);
+            if (dxlCtrl) dxlCtrl->syncWriteAngles(angles.theta1, angles.theta2);
             
             // Update motors and wait a bit for movement
-            if (motor1 && motor2) {
+            if (dxlCtrl) {
                 // Update motors multiple times to allow movement
                 for (int i = 0; i < 10; i++) {
-                    motor1->update();
-                    motor2->update();
+                    dxlCtrl->update();
                     delay(1);
                 }
             }
@@ -342,19 +316,18 @@ void TestInteractive::executeMove(const Point2D& start,
     }
     
     // Wait for final movement to complete
-    if (motor1 && motor2) {
+    if (dxlCtrl) {
         Serial.println("\n⏳ Waiting for motors to reach target...");
         unsigned long startTime = millis();
         unsigned long timeout = 30000;  // 30 second timeout
         
-        while ((motor1->isMoving() || motor2->isMoving()) && 
+        while (dxlCtrl->isMoving() && 
                (millis() - startTime < timeout)) {
-            motor1->update();
-            motor2->update();
+            dxlCtrl->update();
             delay(10);
         }
         
-        if (motor1->isMoving() || motor2->isMoving()) {
+        if (dxlCtrl->isMoving()) {
             Serial.println("⚠️  Timeout reached, motors may still be moving");
         } else {
             Serial.println("✅ Motors reached target position");
@@ -362,7 +335,7 @@ void TestInteractive::executeMove(const Point2D& start,
         
         // Show final angles
         Serial.println();
-        printAngles(JointAngles(motor1->getCurrentAngle(), motor2->getCurrentAngle()), "Final angles");
+        printAngles(JointAngles(dxlCtrl->getAngle(DynamixelController::ID_M1), dxlCtrl->getAngle(DynamixelController::ID_M2)), "Final angles");
         //printPoint(point)
         Serial.println();
     }

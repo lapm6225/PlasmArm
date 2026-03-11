@@ -4,7 +4,7 @@
 #include "../core/Kinematics.h"
 #include "../core/Planner.h"
 #include "../core/Types.h"
-#include "../hardware/IMotor.h"
+#include "../hardware/DynamixelController.h"
 #include <queue>
 
 /**
@@ -19,22 +19,20 @@
 
 class TestInteractive {
 public:
-    static void run(IMotor* motor1, IMotor* motor2);
+    static void run(DynamixelController* dxlCtrl);
     
 private:
     static void printHelp();
     static void processCommand(const String& command, 
                               Kinematics& kin, 
                               Planner& planner,
-                              IMotor* motor1, 
-                              IMotor* motor2,
+                              DynamixelController* dxlCtrl,
                               Point2D& currentPos);
     static void executeMove(const Point2D& start,
                            const Point2D& target,
                            Kinematics& kin,
                            Planner& planner,
-                           IMotor* motor1,
-                           IMotor* motor2,
+                           DynamixelController* dxlCtrl,
                            bool showDetails);
     static void printPoint(const Point2D& p, const char* label = "");
     static void printAngles(const JointAngles& angles, const char* label = "");

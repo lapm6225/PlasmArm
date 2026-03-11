@@ -1,5 +1,5 @@
 #include "RunTests.h"
-#include "../hardware/StepperMotor.h"
+#include "../hardware/DynamixelController.h"
 
 void runAllUnitTests() {
     Serial.println("\n\n");
@@ -41,13 +41,11 @@ void runVisualTestsOnly() {
 
 void runInteractiveTest() {
     // Create motor instances
-    StepperMotor* motor1 = new StepperMotor(MOTOR1_STEP_PIN, MOTOR1_DIR_PIN, MOTOR1_ENABLE_PIN);
-    StepperMotor* motor2 = new StepperMotor(MOTOR2_STEP_PIN, MOTOR2_DIR_PIN, MOTOR2_ENABLE_PIN);
+    DynamixelController* dxlCtrl = new DynamixelController(Serial2);
     
     // Run interactive test
-    TestInteractive::run(motor1, motor2);
+    TestInteractive::run(dxlCtrl);
     
     // Cleanup (never reached in interactive mode, but good practice)
-    delete motor1;
-    delete motor2;
+    delete dxlCtrl;
 }
