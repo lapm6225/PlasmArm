@@ -33,6 +33,14 @@ private:
     // Round-trip tests (forward then inverse)
     static bool testRoundTrip_Simple();
     static bool testRoundTrip_MultipleAngles();
+    
+    // Arm configuration tests
+    static bool testInverse_RightElbow_PositiveX();
+    static bool testInverse_LeftElbow_NegativeX();
+    static bool testInverse_Auto_PicksCorrectly();
+    static bool testInverse_FallbackOnLimitViolation();
+    static bool testRoundTrip_BothConfigs();
+    static bool testInverse_OnYAxis();
 };
 
 #endif // TEST_KINEMATICS_H

@@ -24,6 +24,7 @@ public:
     static void testAngleToPositionVisual();
     static void testPositionToAngleVisual();
     static void testFullPathVisual();
+    static void testArmConfigVisual();
     
 private:
     static void printPoint(const Point2D& p, const char* label = "");

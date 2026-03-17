@@ -22,6 +22,14 @@ void TestKinematics::runAllTests(TestRunner& runner) {
     // Round-trip tests
     runner.runTest("Round-trip: Simple", testRoundTrip_Simple);
     runner.runTest("Round-trip: Multiple angles", testRoundTrip_MultipleAngles);
+    
+    // Arm configuration tests
+    runner.runTest("ArmConfig: Right elbow +X", testInverse_RightElbow_PositiveX);
+    runner.runTest("ArmConfig: Left elbow -X", testInverse_LeftElbow_NegativeX);
+    runner.runTest("ArmConfig: AUTO picks correctly", testInverse_Auto_PicksCorrectly);
+    runner.runTest("ArmConfig: Fallback on limit", testInverse_FallbackOnLimitViolation);
+    runner.runTest("ArmConfig: Round-trip both", testRoundTrip_BothConfigs);
+    runner.runTest("ArmConfig: On Y axis", testInverse_OnYAxis);
 }
 
 // Forward Kinematics Tests
@@ -235,6 +243,173 @@ bool TestKinematics::testRoundTrip_MultipleAngles() {
             return false;
         }
     }
+    
+    return true;
+}
+
+// ============================================================================
+// Arm Configuration Tests
+// ============================================================================
+
+bool TestKinematics::testInverse_RightElbow_PositiveX() {
+    // For a positive-x target, RIGHT_ELBOW should give theta2 ≤ 0
+    Kinematics kin(150.0f, 150.0f);
+    TestRunner runner(false);
+    
+    Point2D target(200.0f, 100.0f);
+    JointAngles angles;
+    
+    bool success = kin.inverse(target, angles, ArmConfig::RIGHT_ELBOW);
+    if (!success) return false;
+    
+    // theta2 should be negative (or zero for fully extended)
+    if (!runner.assertTrue(angles.theta2 <= 0.01f)) return false;
+    
+    // Round-trip check
+    Point2D verify;
+    kin.forward(angles, verify);
+    return runner.assertNear(target.x, verify.x, 0.5f) &&
+           runner.assertNear(target.y, verify.y, 0.5f);
+}
+
+bool TestKinematics::testInverse_LeftElbow_NegativeX() {
+    // For a negative-x target, LEFT_ELBOW should give theta2 ≥ 0
+    Kinematics kin(150.0f, 150.0f);
+    TestRunner runner(false);
+    
+    Point2D target(-200.0f, 100.0f);
+    JointAngles angles;
+    
+    bool success = kin.inverse(target, angles, ArmConfig::LEFT_ELBOW);
+    if (!success) return false;
+    
+    // theta2 should be positive (or zero for fully extended)
+    if (!runner.assertTrue(angles.theta2 >= -0.01f)) return false;
+    
+    // Round-trip check
+    Point2D verify;
+    kin.forward(angles, verify);
+    return runner.assertNear(target.x, verify.x, 0.5f) &&
+           runner.assertNear(target.y, verify.y, 0.5f);
+}
+
+bool TestKinematics::testInverse_Auto_PicksCorrectly() {
+    Kinematics kin(150.0f, 150.0f);
+    TestRunner runner(false);
+    
+    // Positive-x target: AUTO should pick RIGHT_ELBOW → theta2 ≤ 0
+    {
+        Point2D target(200.0f, 100.0f);
+        JointAngles angles;
+        if (!kin.inverse(target, angles, ArmConfig::AUTO)) return false;
+        if (!runner.assertTrue(angles.theta2 <= 0.01f)) return false;
+    }
+    
+    // Negative-x target: AUTO should pick LEFT_ELBOW → theta2 ≥ 0
+    {
+        Point2D target(-200.0f, 100.0f);
+        JointAngles angles;
+        if (!kin.inverse(target, angles, ArmConfig::AUTO)) return false;
+        if (!runner.assertTrue(angles.theta2 >= -0.01f)) return false;
+    }
+    
+    return true;
+}
+
+bool TestKinematics::testInverse_FallbackOnLimitViolation() {
+    // Test that if the preferred config violates joint limits,
+    // the solver falls back to the other config and still returns a valid solution.
+    Kinematics kin(150.0f, 150.0f);
+    TestRunner runner(false);
+    
+    // Force LEFT_ELBOW on a positive-x target — it may violate theta1 limits,
+    // but the solver should fallback to RIGHT_ELBOW and still succeed.
+    Point2D target(200.0f, 100.0f);
+    JointAngles angles;
+    
+    // This should still succeed (via fallback)
+    bool success = kin.inverse(target, angles, ArmConfig::LEFT_ELBOW);
+    if (!success) {
+        // If it genuinely can't reach this point in either config, that's also valid
+        // but for (200,100) with L1=L2=150, it should be reachable
+        return false;
+    }
+    
+    // Round-trip check
+    Point2D verify;
+    kin.forward(angles, verify);
+    return runner.assertNear(target.x, verify.x, 0.5f) &&
+           runner.assertNear(target.y, verify.y, 0.5f);
+}
+
+bool TestKinematics::testRoundTrip_BothConfigs() {
+    // Verify FK→IK→FK round-trips for both configs across workspace
+    Kinematics kin(150.0f, 150.0f);
+    TestRunner runner(false);
+    
+    struct TestCase {
+        float x, y;
+        ArmConfig config;
+    };
+    
+    TestCase cases[] = {
+        { 200.0f, 100.0f, ArmConfig::RIGHT_ELBOW},
+        { 200.0f, 100.0f, ArmConfig::LEFT_ELBOW},
+        {-200.0f, 100.0f, ArmConfig::RIGHT_ELBOW},
+        {-200.0f, 100.0f, ArmConfig::LEFT_ELBOW},
+        { 100.0f, 200.0f, ArmConfig::RIGHT_ELBOW},
+        { 100.0f, 200.0f, ArmConfig::LEFT_ELBOW},
+        {-100.0f, 200.0f, ArmConfig::RIGHT_ELBOW},
+        {-100.0f, 200.0f, ArmConfig::LEFT_ELBOW},
+    };
+    
+    for (int i = 0; i < 8; i++) {
+        Point2D target(cases[i].x, cases[i].y);
+        JointAngles angles;
+        
+        bool success = kin.inverse(target, angles, cases[i].config);
+        if (!success) continue;  // Some config/target combos may not be valid
+        
+        Point2D verify;
+        kin.forward(angles, verify);
+        
+        if (!runner.assertNear(target.x, verify.x, 1.0f) ||
+            !runner.assertNear(target.y, verify.y, 1.0f)) {
+            return false;
+        }
+    }
+    
+    return true;
+}
+
+bool TestKinematics::testInverse_OnYAxis() {
+    // On the Y axis (x=0), both configurations should produce the same endpoint
+    Kinematics kin(150.0f, 150.0f);
+    TestRunner runner(false);
+    
+    Point2D target(0.0f, 250.0f);
+    
+    JointAngles anglesRight, anglesLeft;
+    bool successRight = kin.inverse(target, anglesRight, ArmConfig::RIGHT_ELBOW);
+    bool successLeft  = kin.inverse(target, anglesLeft,  ArmConfig::LEFT_ELBOW);
+    
+    if (!successRight || !successLeft) return false;
+    
+    // Both should reach the same cartesian point
+    Point2D verifyRight, verifyLeft;
+    kin.forward(anglesRight, verifyRight);
+    kin.forward(anglesLeft,  verifyLeft);
+    
+    // Both endpoints should match the target
+    if (!runner.assertNear(target.x, verifyRight.x, 0.5f) ||
+        !runner.assertNear(target.y, verifyRight.y, 0.5f)) return false;
+    if (!runner.assertNear(target.x, verifyLeft.x, 0.5f) ||
+        !runner.assertNear(target.y, verifyLeft.y, 0.5f)) return false;
+    
+    // theta2 signs should be opposite (or both zero for fully extended)
+    // RIGHT_ELBOW: theta2 ≤ 0, LEFT_ELBOW: theta2 ≥ 0
+    if (!runner.assertTrue(anglesRight.theta2 <= 0.01f)) return false;
+    if (!runner.assertTrue(anglesLeft.theta2  >= -0.01f)) return false;
     
     return true;
 }

@@ -38,9 +38,11 @@ public:
      * 
      * @param target Target position in Cartesian space (mm)
      * @param angles Output joint angles (degrees)
+     * @param config Arm configuration to use (AUTO picks based on target x-sign)
      * @return true if position is reachable, false otherwise
      */
-    bool inverse(const Point2D& target, JointAngles& angles);
+    bool inverse(const Point2D& target, JointAngles& angles, 
+                 ArmConfig config = ArmConfig::AUTO);
     
     /**
      * @brief Calculate forward kinematics
@@ -54,9 +56,10 @@ public:
     /**
      * @brief Check if a point is within the workspace
      * @param point Point to check
+     * @param config Arm configuration to use (AUTO picks based on point x-sign)
      * @return true if reachable, false otherwise
      */
-    bool isReachable(const Point2D& point);
+    bool isReachable(const Point2D& point, ArmConfig config = ArmConfig::AUTO);
     
     /**
      * @brief Get workspace radius (maximum reach)

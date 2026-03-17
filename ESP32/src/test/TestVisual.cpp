@@ -19,6 +19,9 @@ void TestVisual::runAllTests(TestRunner& runner) {
     delay(1000);
     
     testFullPathVisual();
+    delay(1000);
+    
+    testArmConfigVisual();
     
     Serial.println("\n✅ Visual tests completed. Review output above.\n");
 }
@@ -327,4 +330,71 @@ void TestVisual::testFullPathVisual() {
     
     printSeparator();
     Serial.println("✅ Full path test completed\n");
+}
+
+void TestVisual::testArmConfigVisual() {
+    Serial.println("\n═══════════════════════════════════════════════════════════");
+    Serial.println("TEST 5: ARM CONFIGURATION COMPARISON");
+    Serial.println("(RIGHT_ELBOW vs LEFT_ELBOW for various targets)");
+    Serial.println("═══════════════════════════════════════════════════════════");
+    
+    Kinematics kin(ARM_LENGTH_1, ARM_LENGTH_2);
+    
+    Serial.printf("\nArm lengths: L1=%.1f mm, L2=%.1f mm\n", ARM_LENGTH_1, ARM_LENGTH_2);
+    printSeparator();
+    Serial.println("Target       | Config       | θ1 (°)  | θ2 (°)  | Verify X | Verify Y | Status");
+    printSeparator();
+    
+    struct TestCase {
+        float x, y;
+        const char* label;
+    };
+    
+    TestCase targets[] = {
+        { 250.0f, 50.0f,  "+X far    "},
+        { 200.0f, 100.0f, "+X mid    "},
+        { 100.0f, 200.0f, "+X near Y "},
+        { 0.0f,   250.0f, "Y axis    "},
+        {-100.0f, 200.0f, "-X near Y "},
+        {-200.0f, 100.0f, "-X mid    "},
+        {-250.0f, 50.0f,  "-X far    "},
+    };
+    
+    const char* configNames[] = {"RIGHT_ELBOW", "LEFT_ELBOW ", "AUTO       "};
+    ArmConfig configs[] = {ArmConfig::RIGHT_ELBOW, ArmConfig::LEFT_ELBOW, ArmConfig::AUTO};
+    
+    for (int t = 0; t < 7; t++) {
+        for (int c = 0; c < 3; c++) {
+            Point2D target(targets[t].x, targets[t].y);
+            JointAngles angles;
+            
+            bool success = kin.inverse(target, angles, configs[c]);
+            
+            if (success) {
+                Point2D verify;
+                kin.forward(angles, verify);
+                float err = Planner::distance(target, verify);
+                
+                Serial.printf("%s | %s | %7.2f | %7.2f | %8.2f | %8.2f | %s\n",
+                    targets[t].label, configNames[c],
+                    angles.theta1, angles.theta2,
+                    verify.x, verify.y,
+                    err < 0.1f ? "✅" : "❌");
+            } else {
+                Serial.printf("%s | %s |    --   |    --   |    --    |    --    | ❌ UNREACHABLE\n",
+                    targets[t].label, configNames[c]);
+            }
+        }
+        Serial.println();  // Blank line between target groups
+    }
+    
+    printSeparator();
+    Serial.println("\nKey observations:");
+    Serial.println("  • RIGHT_ELBOW (θ2≤0): optimal for +X targets");
+    Serial.println("  • LEFT_ELBOW  (θ2≥0): optimal for -X targets");
+    Serial.println("  • AUTO: selects RIGHT for x≥0, LEFT for x<0");
+    Serial.println("  • Y-axis (x=0): both configs valid, AUTO picks RIGHT\n");
+    
+    printSeparator();
+    Serial.println("✅ Arm config comparison test completed\n");
 }

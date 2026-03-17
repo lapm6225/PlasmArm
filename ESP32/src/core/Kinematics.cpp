@@ -10,7 +10,43 @@ void Kinematics::setArmLengths(float l1, float l2) {
   L2 = l2;
 }
 
-bool Kinematics::inverse(const Point2D &target, JointAngles &angles) {
+/**
+ * @brief Solve IK for a specific theta2 sign
+ * 
+ * Helper that computes (theta1, theta2) for a given elbow direction.
+ * Returns false if joint limits are violated.
+ */
+static bool solveForConfig(float x, float y, float r, float L1, float L2,
+                           float cosTheta2, bool negativeTheta2,
+                           JointAngles& angles) {
+  float theta2Rad;
+  if (negativeTheta2) {
+    theta2Rad = -acos(cosTheta2);  // RIGHT_ELBOW: theta2 ≤ 0
+  } else {
+    theta2Rad = acos(cosTheta2);   // LEFT_ELBOW:  theta2 ≥ 0
+  }
+  angles.theta2 = theta2Rad * 180.0f / M_PI;
+
+  // Calculate theta1: alpha is the angle to the target, beta is the elbow offset
+  float alpha = atan2(y, x) * 180.0f / M_PI;
+
+  float sinBeta = (L2 * sin(theta2Rad)) / r;
+  sinBeta = constrain(sinBeta, -1.0f, 1.0f);
+  float beta = asin(sinBeta) * 180.0f / M_PI;
+
+  angles.theta1 = alpha - beta;
+
+  // Validate angle limits
+  if (angles.theta1 < THETA1_MIN || angles.theta1 > THETA1_MAX)
+    return false;
+  if (angles.theta2 < THETA2_MIN || angles.theta2 > THETA2_MAX)
+    return false;
+
+  return true;
+}
+
+bool Kinematics::inverse(const Point2D &target, JointAngles &angles,
+                         ArmConfig config) {
   float x = target.x;
   float y = target.y;
 
@@ -27,49 +63,46 @@ bool Kinematics::inverse(const Point2D &target, JointAngles &angles) {
     return false;
   }
 
-  // ---- Step 2: Calculate theta2 (elbow angle) ----
-  // Law of cosines: r² = L1² + L2² + 2·L1·L2·cos(θ2)
+  // ---- Step 2: Calculate cosTheta2 (common to both solutions) ----
   float cosTheta2 = (r * r - L1 * L1 - L2 * L2) / (2.0f * L1 * L2);
-
-  // Clamp to [-1, 1] for numerical safety
   cosTheta2 = constrain(cosTheta2, -1.0f, 1.0f);
 
-  // Elbow-up configuration (positive theta2)
-  float theta2Rad = acos(cosTheta2);
-  angles.theta2 = theta2Rad * 180.0f / M_PI; // Always 0° to ~161°
-
-  // ---- Step 3: Calculate theta1 (base/shoulder angle) ----
-  // alpha = angle from +X axis to the target point
-  float alpha = atan2(y, x) * 180.0f / M_PI; // -180° to +180°
-
-  // beta = angle offset due to elbow bend
-  float sinBeta = (L2 * sin(theta2Rad)) / r;
-  sinBeta = constrain(sinBeta, -1.0f, 1.0f);
-  float beta = asin(sinBeta) * 180.0f / M_PI;
-
-  // theta1 = alpha - beta (elbow-up solution)
-  angles.theta1 = alpha - beta;
-
-  // ---- Step 4: Validate angle limits ----
-  if (angles.theta1 < THETA1_MIN || angles.theta1 > THETA1_MAX) {
-    Serial.printf("IK REJECT: theta1=%.1f° outside limits [%.0f°, %.0f°] "
-                  "for target (%.1f, %.1f)\n",
-                  angles.theta1, THETA1_MIN, THETA1_MAX, x, y);
-    return false;
-  }
-  if (angles.theta2 < THETA2_MIN || angles.theta2 > THETA2_MAX) {
-    Serial.printf("IK REJECT: theta2=%.1f° outside limits [%.0f°, %.0f°] "
-                  "for target (%.1f, %.1f)\n",
-                  angles.theta2, THETA2_MIN, THETA2_MAX, x, y);
-    return false;
+  // ---- Step 3: Resolve AUTO to a concrete config ----
+  if (config == ArmConfig::AUTO) {
+    // Positive-x (or on Y-axis) → RIGHT_ELBOW (negative theta2)
+    // Negative-x → LEFT_ELBOW (positive theta2)
+    config = (x >= 0.0f) ? ArmConfig::RIGHT_ELBOW : ArmConfig::LEFT_ELBOW;
   }
 
+  // ---- Step 4: Try the preferred configuration ----
+  bool preferNegative = (config == ArmConfig::RIGHT_ELBOW);
+
+  if (solveForConfig(x, y, r, L1, L2, cosTheta2, preferNegative, angles)) {
 #if DEBUG_KINEMATICS
-  Serial.printf("IK: (%.2f, %.2f) r=%.1f -> theta1=%.2f° theta2=%.2f°\n", x, y,
-                r, angles.theta1, angles.theta2);
+    Serial.printf("IK: (%.2f, %.2f) r=%.1f -> theta1=%.2f° theta2=%.2f° [%s]\n",
+                  x, y, r, angles.theta1, angles.theta2,
+                  preferNegative ? "RIGHT_ELBOW" : "LEFT_ELBOW");
+#endif
+    return true;
+  }
+
+  // ---- Step 5: Fallback — try the other configuration ----
+#if DEBUG_KINEMATICS
+  Serial.printf("IK: preferred config failed for (%.2f, %.2f), trying fallback\n", x, y);
 #endif
 
-  return true;
+  if (solveForConfig(x, y, r, L1, L2, cosTheta2, !preferNegative, angles)) {
+#if DEBUG_KINEMATICS
+    Serial.printf("IK: (%.2f, %.2f) r=%.1f -> theta1=%.2f° theta2=%.2f° [FALLBACK %s]\n",
+                  x, y, r, angles.theta1, angles.theta2,
+                  !preferNegative ? "RIGHT_ELBOW" : "LEFT_ELBOW");
+#endif
+    return true;
+  }
+
+  // Both configurations failed
+  Serial.printf("IK REJECT: no valid config for (%.1f, %.1f)\n", x, y);
+  return false;
 }
 
 void Kinematics::forward(const JointAngles &angles, Point2D &position) {
@@ -88,44 +121,37 @@ void Kinematics::forward(const JointAngles &angles, Point2D &position) {
 #endif
 }
 
-bool Kinematics::isReachable(const Point2D &point) {
+bool Kinematics::isReachable(const Point2D &point, ArmConfig config) {
   float r = sqrt(point.x * point.x + point.y * point.y);
 
-  // Check circular boundaries
-  /*
+  // Quick boundary check
   if (r > (L1 + L2) || r < WORKSPACE_R_MIN) {
     return false;
   }
 
-  // Check half-plane constraint (y > 0, with small tolerance for boundary)
-  // Allow y slightly below 0 to handle points at (300, 0) and (-300, 0)
-  if (point.y < -1.0f) {
-    return false;
-  }*/
-
-  // Full validation: try computing IK and check angle limits
-  JointAngles testAngles;
-  // Use a temporary without printing errors
-  float x = point.x;
-  float y = point.y;
+  // Full validation: try computing IK with the specified config
   float cosTheta2 = (r * r - L1 * L1 - L2 * L2) / (2.0f * L1 * L2);
   cosTheta2 = constrain(cosTheta2, -1.0f, 1.0f);
-  float theta2Rad = acos(cosTheta2);
-  float theta2 = theta2Rad * 180.0f / M_PI;
 
-  float alpha = atan2(y, x) * 180.0f / M_PI;
-  float sinBeta = (L2 * sin(theta2Rad)) / r;
-  sinBeta = constrain(sinBeta, -1.0f, 1.0f);
-  float beta = asin(sinBeta) * 180.0f / M_PI;
-  float theta1 = alpha - beta;
+  // Resolve AUTO
+  ArmConfig resolved = config;
+  if (resolved == ArmConfig::AUTO) {
+    resolved = (point.x >= 0.0f) ? ArmConfig::RIGHT_ELBOW : ArmConfig::LEFT_ELBOW;
+  }
 
-  // Check angle limits
-  if (theta1 < THETA1_MIN || theta1 > THETA1_MAX)
-    return false;
-  if (theta2 < THETA2_MIN || theta2 > THETA2_MAX)
-    return false;
+  bool preferNegative = (resolved == ArmConfig::RIGHT_ELBOW);
 
-  return true;
+  JointAngles testAngles;
+  // Try preferred config
+  if (solveForConfig(point.x, point.y, r, L1, L2, cosTheta2, preferNegative, testAngles)) {
+    return true;
+  }
+  // Try fallback
+  if (solveForConfig(point.x, point.y, r, L1, L2, cosTheta2, !preferNegative, testAngles)) {
+    return true;
+  }
+
+  return false;
 }
 
 float Kinematics::getMaxReach() { return L1 + L2; }

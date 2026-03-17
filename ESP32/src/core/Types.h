@@ -6,6 +6,21 @@
  * @brief Common data structures for the SCARA robot controller
  */
 
+/**
+ * @brief Arm configuration for inverse kinematics
+ * 
+ * A 2-DOF SCARA has two IK solutions for most points (elbow left vs right).
+ * The optimal configuration depends on which side of the Y-axis the target is:
+ *   - Positive-x targets → RIGHT_ELBOW (theta2 ≤ 0)
+ *   - Negative-x targets → LEFT_ELBOW  (theta2 ≥ 0)
+ *   - AUTO selects based on the sign of the target x-coordinate
+ */
+enum class ArmConfig {
+    RIGHT_ELBOW,  // theta2 ≤ 0 — optimal for positive-x targets
+    LEFT_ELBOW,   // theta2 ≥ 0 — optimal for negative-x targets
+    AUTO          // auto-select: x >= 0 → RIGHT_ELBOW, x < 0 → LEFT_ELBOW
+};
+
 // 2D Cartesian point
 struct Point2D {
   float x;
