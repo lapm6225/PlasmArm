@@ -6,7 +6,7 @@ void TestInteractive::run(DynamixelController* dxlCtrl) {
     Serial.println("\n\n");
     Serial.println("╔══════════════════════════════════════════════════════════╗");
     Serial.println("║      INTERACTIVE INTEGRATION TEST                        ║");
-    Serial.println("║      With Real Dy s                          ║");
+    Serial.println("║      With Real Motors                                    ║");
     Serial.println("╚══════════════════════════════════════════════════════════╝");
     Serial.println();
     
@@ -25,7 +25,7 @@ void TestInteractive::run(DynamixelController* dxlCtrl) {
     Serial.printf("Max reach: %.1f mm\n", kin.getMaxReach());
     Serial.println();
     
-    Point2D currentPos(150.0f, 150.0f);  // Start position
+    Point2D currentPos(ARM_LENGTH_1+ARM_LENGTH_2,0);  // Start position
     
     // Calculate initial angles
     JointAngles initialAngles;
@@ -97,17 +97,25 @@ void TestInteractive::processCommand(const String& command,
     
     if (cmd == "pos" || cmd == "position") {
         JointAngles angles;
-        if (kin.inverse(currentPos, angles)) {
-            printPoint(currentPos, "Current position");
-            Serial.println();
-            printAngles(angles, "Current angles");
-            Serial.println();
-            
-            if (dxlCtrl) {
-                Serial.printf("Motor 1 angle: %.2f°\n", dxlCtrl->getAngle(DynamixelController::ID_M1));
-                Serial.printf("Motor 2 angle: %.2f°\n", dxlCtrl->getAngle(DynamixelController::ID_M2));
-                Serial.printf("Motors moving: %s\n", dxlCtrl->isMoving() ? "YES" : "NO");
-            }
+        
+        if (dxlCtrl) {
+            // Read actual angles from motors
+            angles.theta1 = dxlCtrl->getAngle(DynamixelController::ID_M1);
+            angles.theta2 = dxlCtrl->getAngle(DynamixelController::ID_M2);
+            // Update Cartesian position based on real angles
+            kin.forward(angles, currentPos);
+        } else {
+            // Simulate reading angles from currentPos
+            kin.inverse(currentPos, angles);
+        }
+        
+        printPoint(currentPos, "Current position");
+        Serial.println();
+        printAngles(angles, "Current angles");
+        Serial.println();
+        
+        if (dxlCtrl) {
+            Serial.printf("Motors moving: %s\n", dxlCtrl->isMoving() ? "YES" : "NO");
         }
         return;
     }
@@ -120,14 +128,37 @@ void TestInteractive::processCommand(const String& command,
     }
 
     if(cmd == "save-home"){
-        if (dxlCtrl) dxlCtrl->saveHome();
+        if (dxlCtrl) {
+            dxlCtrl->saveHome();
+            // At this point, the arm is considered to be at angle (0,0)
+            JointAngles angles(0, 0);
+            kin.forward(angles, currentPos);
+        }
         Serial.println("Angles (0,0) have been saved");
         return;
     }
     
     if (cmd == "home") {
-        executeMove(currentPos, Point2D(0, 0), kin, planner, dxlCtrl, true);
-        currentPos = Point2D(0, 0);
+        Serial.println("\n═══════════════════════════════════════════════════════════");
+        Serial.println("HOMING: MOVING TO ANGLES: 0.00°, 0.00°");
+        Serial.println("═══════════════════════════════════════════════════════════\n");
+        
+        if (dxlCtrl) dxlCtrl->syncWriteAngles(0.0f, 0.0f);
+        
+        // Update motors to allow movement execution
+        if (dxlCtrl) {
+            for (int i = 0; i < 10; i++) {
+                dxlCtrl->update();
+                delay(1);
+            }
+        }
+        
+        // Update Cartesian position based on target angles
+        JointAngles angles(0, 0);
+        kin.forward(angles, currentPos);
+        
+        Serial.println("\n✅ Home command completed!");
+        Serial.println("═══════════════════════════════════════════════════════════\n");
         return;
     }
     

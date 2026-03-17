@@ -1,5 +1,6 @@
 #include "hardware/DynamixelController.h"
 #include <Arduino.h>
+#include "../Config.h"
 
 const float DynamixelController::POSITION_TOLERANCE = 1.0f;
 const float DynamixelController::DEG_TO_PULSE = 4096.0f / 360.0f;
@@ -37,7 +38,7 @@ bool DynamixelController::init() {
 
     // === PARAMETRAGE DU TEMPS D'INTERPOLATION ===
     // IMPORTANT : Ce temps doit correspondre à l'intervalle d'envoi du ESP32 !
-    uint32_t step_time_ms = 10;
+    uint32_t step_time_ms = INTERPOLATION_INTERVAL_MS;
     dxl.writeControlTableItem(ControlTableItem::PROFILE_VELOCITY, ID_M1, step_time_ms);
     dxl.writeControlTableItem(ControlTableItem::PROFILE_VELOCITY, ID_M2, step_time_ms);
     dxl.writeControlTableItem(ControlTableItem::PROFILE_ACCELERATION, ID_M1, 0);
