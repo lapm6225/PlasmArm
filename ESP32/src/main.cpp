@@ -30,7 +30,7 @@
 #include <queue> // For std::queue in planner task
 
 // Test mode includes
-#if RUN_UNIT_TESTS || RUN_VISUAL_TESTS || RUN_INTERACTIVE_TEST
+#if RUN_UNIT_TESTS || RUN_VISUAL_TESTS || RUN_INTERACTIVE_TEST || RUN_DYNAMIXEL_COMM_TEST
 #include "test/RunTests.h"
 #endif
 
@@ -77,6 +77,12 @@ void setup() {
 #if RUN_INTERACTIVE_TEST
   // Run interactive integration test with real motors
   runInteractiveTest();
+  return; // Exit setup - don't initialize robot
+#endif
+
+#if RUN_DYNAMIXEL_COMM_TEST
+  // Run simple dynamixel communication test
+  runDynamixelCommTest();
   return; // Exit setup - don't initialize robot
 #endif
 

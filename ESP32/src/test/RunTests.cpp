@@ -49,3 +49,14 @@ void runInteractiveTest() {
     // Cleanup (never reached in interactive mode, but good practice)
     delete dxlCtrl;
 }
+
+void runDynamixelCommTest() {
+    // Create motor instances
+    DynamixelController* dxlCtrl = new DynamixelController(Serial2);
+    
+    // Run simple comm test
+    TestDynamixelComm::run(dxlCtrl);
+    
+    // Cleanup
+    delete dxlCtrl;
+}

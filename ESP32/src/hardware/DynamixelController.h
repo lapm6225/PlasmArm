@@ -94,6 +94,7 @@ private:
 
     // Conversion methods
     float normalize(float a);
+    float wrapAngle180(float a);
     float mechToInternal_ID1(float a_mech);
     float mechToInternal_ID2(float a_mech);
     float internalToMech_ID1(float a_int);

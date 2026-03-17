@@ -7,6 +7,7 @@
 #include "TestStepperMotor.h"
 #include "TestVisual.h"
 #include "TestInteractive.h"
+#include "TestDynamixelComm.h"
 
 /**
  * @file RunTests.h
@@ -16,5 +17,6 @@
 void runAllUnitTests();
 void runVisualTestsOnly();
 void runInteractiveTest();
+void runDynamixelCommTest();
 
 #endif // RUN_TESTS_H
