@@ -41,6 +41,8 @@ private:
     static bool testInverse_FallbackOnLimitViolation();
     static bool testRoundTrip_BothConfigs();
     static bool testInverse_OnYAxis();
+    static bool testInverse_ReportsUsedConfig();
+    static bool testLazyConfigSwitching();
 };
 
 #endif // TEST_KINEMATICS_H

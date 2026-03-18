@@ -27,13 +27,15 @@ private:
                               Kinematics& kin, 
                               Planner& planner,
                               DynamixelController* dxlCtrl,
-                              Point2D& currentPos);
+                              Point2D& currentPos,
+                              ArmConfig& currentConfig);
     static void executeMove(const Point2D& start,
                            const Point2D& target,
                            Kinematics& kin,
                            Planner& planner,
                            DynamixelController* dxlCtrl,
-                           bool showDetails);
+                           bool showDetails,
+                           ArmConfig& currentConfig);
     static void printPoint(const Point2D& p, const char* label = "");
     static void printAngles(const JointAngles& angles, const char* label = "");
 };

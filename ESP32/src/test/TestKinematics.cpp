@@ -30,6 +30,8 @@ void TestKinematics::runAllTests(TestRunner& runner) {
     runner.runTest("ArmConfig: Fallback on limit", testInverse_FallbackOnLimitViolation);
     runner.runTest("ArmConfig: Round-trip both", testRoundTrip_BothConfigs);
     runner.runTest("ArmConfig: On Y axis", testInverse_OnYAxis);
+    runner.runTest("ArmConfig: Reports used config", testInverse_ReportsUsedConfig);
+    runner.runTest("ArmConfig: Lazy switching", testLazyConfigSwitching);
 }
 
 // Forward Kinematics Tests
@@ -412,4 +414,102 @@ bool TestKinematics::testInverse_OnYAxis() {
     if (!runner.assertTrue(anglesLeft.theta2  >= -0.01f)) return false;
     
     return true;
+}
+
+bool TestKinematics::testInverse_ReportsUsedConfig() {
+    // Verify that the 4-arg inverse() overload correctly reports which config was used
+    Kinematics kin(150.0f, 150.0f);
+    TestRunner runner(false);
+    
+    // Case 1: preferred config is RIGHT_ELBOW, point is reachable → usedConfig = RIGHT_ELBOW
+    {
+        Point2D target(200.0f, 100.0f);
+        JointAngles angles;
+        ArmConfig usedConfig;
+        bool ok = kin.inverse(target, angles, ArmConfig::RIGHT_ELBOW, usedConfig);
+        if (!ok) return false;
+        if (!runner.assertTrue(usedConfig == ArmConfig::RIGHT_ELBOW)) return false;
+        if (!runner.assertTrue(angles.theta2 <= 0.01f)) return false;
+    }
+    
+    // Case 2: preferred config is LEFT_ELBOW, point is reachable → usedConfig = LEFT_ELBOW
+    {
+        Point2D target(-200.0f, 100.0f);
+        JointAngles angles;
+        ArmConfig usedConfig;
+        bool ok = kin.inverse(target, angles, ArmConfig::LEFT_ELBOW, usedConfig);
+        if (!ok) return false;
+        if (!runner.assertTrue(usedConfig == ArmConfig::LEFT_ELBOW)) return false;
+        if (!runner.assertTrue(angles.theta2 >= -0.01f)) return false;
+    }
+    
+    // Case 3: preferred config fails, fallback succeeds → usedConfig = fallback config
+    {
+        // Force LEFT_ELBOW on a +x target. LEFT_ELBOW may fail joint limits for this point
+        // and the solver falls back to RIGHT_ELBOW, which must be reported in usedConfig.
+        Point2D target(200.0f, 100.0f);
+        JointAngles angles;
+        ArmConfig usedConfig;
+        bool ok = kin.inverse(target, angles, ArmConfig::LEFT_ELBOW, usedConfig);
+        if (!ok) return false;
+        // The solver found SOME valid solution — verify usedConfig matches actual theta2 sign
+        if (usedConfig == ArmConfig::RIGHT_ELBOW) {
+            if (!runner.assertTrue(angles.theta2 <= 0.01f)) return false;
+        } else {
+            if (!runner.assertTrue(angles.theta2 >= -0.01f)) return false;
+        }
+    }
+    
+    return true;
+}
+
+bool TestKinematics::testLazyConfigSwitching() {
+    // Simulate the lazy switching strategy over a sequence of points.
+    // Config should only change when the current config can't reach the next point.
+    Kinematics kin(150.0f, 150.0f);
+    TestRunner runner(false);
+    
+    // Sequence: starts on +x side, crosses to -x side, comes back
+    // RIGHT_ELBOW should work for all +x points without switching.
+    // Only one switch expected when we move into -x territory.
+    struct Point { float x, y; };
+    Point sequence[] = {
+        { 200.0f, 100.0f},  // +x → RIGHT_ELBOW
+        { 150.0f, 150.0f},  // +x → RIGHT_ELBOW
+        { 100.0f, 200.0f},  // +x → RIGHT_ELBOW
+        {-100.0f, 200.0f},  // -x → may need LEFT_ELBOW
+        {-200.0f, 100.0f},  // -x → LEFT_ELBOW
+        {-150.0f, 150.0f},  // -x → LEFT_ELBOW
+        { 100.0f, 200.0f},  // +x → may need RIGHT_ELBOW
+        { 200.0f, 100.0f},  // +x → RIGHT_ELBOW
+    };
+    const int N = 8;
+
+    ArmConfig currentConfig = ArmConfig::RIGHT_ELBOW;
+    int switches = 0;
+    
+    for (int i = 0; i < N; i++) {
+        Point2D target(sequence[i].x, sequence[i].y);
+        JointAngles angles;
+        ArmConfig usedConfig;
+        
+        bool ok = kin.inverse(target, angles, currentConfig, usedConfig);
+        if (!ok) return false;  // All points must be reachable
+        
+        // Round-trip check
+        Point2D verify;
+        kin.forward(angles, verify);
+        if (!runner.assertNear(target.x, verify.x, 1.0f) ||
+            !runner.assertNear(target.y, verify.y, 1.0f)) return false;
+        
+        // Count lazy switches
+        if (usedConfig != currentConfig) {
+            switches++;
+            currentConfig = usedConfig;
+        }
+    }
+    
+    // Expect exactly 2 switches: one going into -x, one coming back to +x
+    // (The exact number depends on joint limits, but it must be ≤ 2 and > 0)
+    return runner.assertTrue(switches <= 2) && runner.assertTrue(switches > 0);
 }
