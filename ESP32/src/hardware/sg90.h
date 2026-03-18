@@ -4,7 +4,6 @@
 #include <Arduino.h>
 
 // Use the project Config.h (in ESP32/src/) so TOOL_SERVO_PIN / TOOL_SWITCH_PIN are defined.
-// Avoid accidentally including ESP32/include/config.h which does not define those macros.
 #include "../Config.h"
 
 class SG90 {
@@ -19,21 +18,27 @@ public:
          int ledcChannel = 0);
 
     /**
-     * Write an absolute angle to the servo.
+     * Write an absolute angle to the servo (0 - 180).
      */
     void write(int angle);
 
     /**
-     * Move the servo towards the "down" direction until the configured limit switch becomes active.
-     * This function does not enforce an angle limit; it is expected that the caller uses a limit switch
-     * to stop movement.
+     * Move the servo downwards until the limit switch becomes active (LOW).
+     * @param stepDelayMs Delay between each degree step to control speed.
      */
-    void sg_down(int activeState = HIGH, int stepDelayMs = 20);
+    void down(int stepDelayMs = 20);
 
     /**
-     * Move the servo "up" by a few degrees (default 10°) from the current position.
+     * Move the servo upwards by a given number of degrees from the current position.
+     * @param degrees Number of degrees to move back up (default 20).
+     * @param stepDelayMs Delay between each degree step to control speed.
      */
-    void sg_up(int degrees = 10, int stepDelayMs = 20);
+    void up(int degrees = 60, int stepDelayMs = 20);
+
+    /**
+     * Get the current angle of the servo.
+     */
+    int getAngle() const { return _angle; }
 
 private:
     int _pin;

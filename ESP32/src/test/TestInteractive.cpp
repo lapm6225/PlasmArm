@@ -154,14 +154,14 @@ void TestInteractive::processCommand(const String& command,
 
     if(cmd == "z-down"){
         Serial.println("Activating Z down sequence...");
-        zServo.sg_down(LOW); 
+        zServo.down(); 
         Serial.println("Z down sequence completed.");
         return;
     }
 
     if(cmd == "z-up"){
         Serial.println("Activating Z up sequence...");
-        zServo.sg_up(20); 
+        zServo.up(20); 
         Serial.println("Z up sequence completed.");
         return;
     }

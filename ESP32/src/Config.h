@@ -69,7 +69,7 @@
 
 // Tool output (relay, plasma torch trigger, etc.)
 #define TOOL_SERVO_PIN 26 // pin pour donner les positions du servo
-#define TOOL_SWITCH_PIN 25 //pin pour lire l'état du switch de pression
+#define TOOL_SWITCH_PIN 35 //pin pour lire l'état du switch de pression
 
 
 
@@ -130,8 +130,10 @@
 // Set to true to run only visual tests (detailed output, no pass/fail)
 #define RUN_VISUAL_TESTS false
 // Set to true to run interactive integration test with real motors
-#define RUN_INTERACTIVE_TEST true
+#define RUN_INTERACTIVE_TEST false
 // Set to true to run the simple dynamixel communication test
 #define RUN_DYNAMIXEL_COMM_TEST false
+// Set to true to run the simple effector test
+#define RUN_EFFECTOR_TEST true
 
 #endif // CONFIG_H

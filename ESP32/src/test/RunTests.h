@@ -8,6 +8,7 @@
 #include "TestVisual.h"
 #include "TestInteractive.h"
 #include "TestDynamixelComm.h"
+#include "TestEffector.h"
 
 /**
  * @file RunTests.h
@@ -18,5 +19,6 @@ void runAllUnitTests();
 void runVisualTestsOnly();
 void runInteractiveTest();
 void runDynamixelCommTest();
+void runEffectorTest();
 
 #endif // RUN_TESTS_H
