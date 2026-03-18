@@ -38,10 +38,19 @@ public:
      * 
      * @param target Target position in Cartesian space (mm)
      * @param angles Output joint angles (degrees)
-     * @param config Arm configuration to use (AUTO picks based on target x-sign)
+     * @param config Preferred arm configuration (try this first)
+     * @param usedConfig Output: the configuration that was actually used
+     *                   (may differ from config if fallback was needed)
      * @return true if position is reachable, false otherwise
      */
-    bool inverse(const Point2D& target, JointAngles& angles, 
+    bool inverse(const Point2D& target, JointAngles& angles,
+                 ArmConfig config, ArmConfig& usedConfig);
+
+    /**
+     * @brief Calculate inverse kinematics (convenience overload)
+     * Same as above but discards usedConfig. Defaults to AUTO.
+     */
+    bool inverse(const Point2D& target, JointAngles& angles,
                  ArmConfig config = ArmConfig::AUTO);
     
     /**

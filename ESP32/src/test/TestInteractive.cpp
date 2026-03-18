@@ -25,17 +25,21 @@ void TestInteractive::run(DynamixelController* dxlCtrl) {
     Serial.printf("Max reach: %.1f mm\n", kin.getMaxReach());
     Serial.println();
     
-    Point2D currentPos(ARM_LENGTH_1+ARM_LENGTH_2,0);  // Start position
+    // Home position is at +X axis → start with RIGHT_ELBOW config
+    Point2D currentPos(ARM_LENGTH_1 + ARM_LENGTH_2, 0);
+    ArmConfig currentConfig = ArmConfig::RIGHT_ELBOW;
     
-    // Calculate initial angles
+    // Set initial motor position
     JointAngles initialAngles;
-    if (kin.inverse(currentPos, initialAngles)) {
+    if (kin.inverse(currentPos, initialAngles, currentConfig)) {
         if (dxlCtrl) dxlCtrl->syncWriteAngles(initialAngles.theta1, initialAngles.theta2);
         Serial.println("Initial position set");
         printPoint(currentPos, "Current position");
         Serial.println();
         printAngles(initialAngles, "Current angles");
         Serial.println();
+        Serial.printf("Current config: %s\n",
+                      currentConfig == ArmConfig::RIGHT_ELBOW ? "RIGHT_ELBOW" : "LEFT_ELBOW");
     }
     
     printHelp();
@@ -55,7 +59,7 @@ void TestInteractive::run(DynamixelController* dxlCtrl) {
             
             if (c == '\n' || c == '\r') {
                 if (inputBuffer.length() > 0) {
-                    processCommand(inputBuffer, kin, planner, dxlCtrl, currentPos);
+                    processCommand(inputBuffer, kin, planner, dxlCtrl, currentPos, currentConfig);
                     inputBuffer = "";
                 }
             } else {
@@ -71,11 +75,11 @@ void TestInteractive::printHelp() {
     Serial.println("\nCommands:");
     Serial.println("  x,y          - Move to position (e.g., '200,150')");
     Serial.println("  move x,y     - Same as above");
-    Serial.println("  angle t1,t2     - Move angles (t1,t2)");
-    Serial.println("  home         - Move to home position (0,0)");
-    Serial.println("  set-home         - Deactivate motor to mannually home");
-    Serial.println("  save-home         - Save home angles");
-    Serial.println("  pos          - Show current position and angles");
+    Serial.println("  angle t1,t2  - Move to joint angles (t1,t2)");
+    Serial.println("  home         - Move to home position (angles 0,0)");
+    Serial.println("  set-home     - Deactivate motor to manually home");
+    Serial.println("  save-home    - Save home angles");
+    Serial.println("  pos          - Show current position, angles and config");
     Serial.println("  test         - Run test sequence");
     Serial.println("  help         - Show this help");
     Serial.println();
@@ -85,7 +89,8 @@ void TestInteractive::processCommand(const String& command,
                                     Kinematics& kin, 
                                     Planner& planner,
                                     DynamixelController* dxlCtrl,
-                                    Point2D& currentPos) {
+                                    Point2D& currentPos,
+                                    ArmConfig& currentConfig) {
     String cmd = command;
     cmd.trim();
     cmd.toLowerCase();
@@ -106,13 +111,15 @@ void TestInteractive::processCommand(const String& command,
             kin.forward(angles, currentPos);
         } else {
             // Simulate reading angles from currentPos
-            kin.inverse(currentPos, angles);
+            kin.inverse(currentPos, angles, currentConfig);
         }
         
         printPoint(currentPos, "Current position");
         Serial.println();
         printAngles(angles, "Current angles");
         Serial.println();
+        Serial.printf("Current config: %s\n",
+                      currentConfig == ArmConfig::RIGHT_ELBOW ? "RIGHT_ELBOW" : "LEFT_ELBOW");
         
         if (dxlCtrl) {
             Serial.printf("Motors moving: %s\n", dxlCtrl->isMoving() ? "YES" : "NO");
@@ -120,14 +127,14 @@ void TestInteractive::processCommand(const String& command,
         return;
     }
 
-    if( cmd == "set-home"){
+    if (cmd == "set-home") {
         Serial.println("Mode set-home activated");
-        Serial.println("You can now mannualy move the robot to the angle (0,0) position");
+        Serial.println("You can now manually move the robot to the angle (0,0) position");
         if (dxlCtrl) dxlCtrl->setHomeMode();
         return;
     }
 
-    if(cmd == "save-home"){
+    if (cmd == "save-home") {
         if (dxlCtrl) {
             dxlCtrl->saveHome();
             // At this point, the arm is considered to be at angle (0,0)
@@ -169,11 +176,13 @@ void TestInteractive::processCommand(const String& command,
             }
         }
         
-        // Update Cartesian position based on target angles
+        // Home is at +X axis → reset to RIGHT_ELBOW config
+        currentConfig = ArmConfig::RIGHT_ELBOW;
         JointAngles angles(0, 0);
         kin.forward(angles, currentPos);
         
         Serial.println("\n✅ Home command completed!");
+        Serial.printf("Config reset to: RIGHT_ELBOW\n");
         Serial.println("═══════════════════════════════════════════════════════════\n");
         return;
     }
@@ -181,15 +190,16 @@ void TestInteractive::processCommand(const String& command,
     if (cmd.startsWith("test")) {
         Serial.println("\nRunning test sequence...");
         Point2D testPoints[] = {
-            Point2D(200, 150),
-            Point2D(250, 100),
+            Point2D(200, 100),
             Point2D(200, 200),
-            Point2D(150, 150),
+            Point2D(100, 200),
+            Point2D(100, 100),
+            Point2D(200, 100),
         };
         
-        for (int i = 0; i < 4; i++) {
-            Serial.printf("\n--- Test move %d/%d ---\n", i + 1, 4);
-            executeMove(currentPos, testPoints[i], kin, planner, dxlCtrl, true);
+        for (int i = 0; i < 5; i++) {
+            Serial.printf("\n--- Test move %d/%d ---\n", i + 1, 5);
+            executeMove(currentPos, testPoints[i], kin, planner, dxlCtrl, true, currentConfig);
             currentPos = testPoints[i];
             
             // Wait for movement to complete
@@ -226,11 +236,15 @@ void TestInteractive::processCommand(const String& command,
                 }
             }
             
-            // Update currentPos based on new angles using forward kinematics
+            // Update currentPos and infer config from the new angles
             JointAngles angles(t1, t2);
             kin.forward(angles, currentPos);
+            // theta2 sign tells us which config we're in
+            currentConfig = (t2 <= 0.0f) ? ArmConfig::RIGHT_ELBOW : ArmConfig::LEFT_ELBOW;
             
             Serial.println("\n✅ Angle command completed!");
+            Serial.printf("Config inferred: %s\n",
+                          currentConfig == ArmConfig::RIGHT_ELBOW ? "RIGHT_ELBOW" : "LEFT_ELBOW");
             Serial.println("═══════════════════════════════════════════════════════════\n");
         } else {
             Serial.println("❌ Invalid format. Use 'angle t1,t2'");
@@ -248,10 +262,10 @@ void TestInteractive::processCommand(const String& command,
             commaIndex = cmd.indexOf(',');
         }
         int separatorIndex;
-        if(commaIndex >0){
-            separatorIndex=commaIndex;
-        }else if(spaceIndex>0){
-            separatorIndex=spaceIndex;
+        if (commaIndex > 0) {
+            separatorIndex = commaIndex;
+        } else if (spaceIndex > 0) {
+            separatorIndex = spaceIndex;
         }
         float x = cmd.substring(0, separatorIndex).toFloat();
         float y = cmd.substring(separatorIndex + 1).toFloat();
@@ -265,11 +279,15 @@ void TestInteractive::processCommand(const String& command,
         Serial.println();
         printPoint(target, "To");
         Serial.println();
+        Serial.printf("Config: %s\n",
+                      currentConfig == ArmConfig::RIGHT_ELBOW ? "RIGHT_ELBOW" : "LEFT_ELBOW");
         
-        executeMove(currentPos, target, kin, planner, dxlCtrl, true);
-        currentPos = target;
+        executeMove(currentPos, target, kin, planner, dxlCtrl, true, currentConfig);
+        currentPos = target; // TODO: validate actual position after move
         
         Serial.println("\n✅ Movement command completed!");
+        Serial.printf("Config after move: %s\n",
+                      currentConfig == ArmConfig::RIGHT_ELBOW ? "RIGHT_ELBOW" : "LEFT_ELBOW");
         Serial.println("═══════════════════════════════════════════════════════════\n");
         return;
     }
@@ -282,8 +300,9 @@ void TestInteractive::executeMove(const Point2D& start,
                                   Kinematics& kin,
                                   Planner& planner,
                                   DynamixelController* dxlCtrl,
-                                  bool showDetails) {
-    // Check if target is reachable
+                                  bool showDetails,
+                                  ArmConfig& currentConfig) {
+    // Check if target is reachable in ANY config
     if (!kin.isReachable(target)) {
         Serial.printf("❌ Target (%.2f, %.2f) is NOT reachable!\n", target.x, target.y);
         float distance = sqrt(target.x * target.x + target.y * target.y);
@@ -300,24 +319,38 @@ void TestInteractive::executeMove(const Point2D& start,
     Serial.printf("\n📊 Interpolation: %d points generated\n", numPoints);
     
     if (showDetails) {
-        Serial.println("\nPoint# | X (mm)  | Y (mm)  | θ1 (°)  | θ2 (°)  | Status");
-        Serial.println("─────────────────────────────────────────────────────────────");
+        Serial.println("\nPoint# | X (mm)  | Y (mm)  | θ1 (°)  | θ2 (°)  | Config       | Status");
+        Serial.println("─────────────────────────────────────────────────────────────────────────");
     }
     
     int index = 0;
     int passed = 0;
     int failed = 0;
+    int configSwitches = 0;
     
     while (!queue.empty()) {
         Point2D point = queue.front();
         queue.pop();
         
-        // Calculate inverse kinematics
+        // --- Lazy config switching: try currentConfig first ---
         JointAngles angles;
-        bool ikSuccess = kin.inverse(point, angles);
+        ArmConfig usedConfig;
+        bool ikSuccess = kin.inverse(point, angles, currentConfig, usedConfig);
         
         if (ikSuccess) {
-            // Verify round-trip
+            // Detect and report config switch
+            if (usedConfig != currentConfig) {
+                configSwitches++;
+                if (showDetails) {
+                    Serial.printf("       ⚡ Config switch: %s → %s at point %d (%.1f, %.1f)\n",
+                                  currentConfig == ArmConfig::RIGHT_ELBOW ? "RIGHT" : "LEFT",
+                                  usedConfig    == ArmConfig::RIGHT_ELBOW ? "RIGHT" : "LEFT",
+                                  index, point.x, point.y);
+                }
+                currentConfig = usedConfig;  // Lazy switch: adopt the new config
+            }
+
+            // Verify round-trip accuracy
             Point2D verify;
             kin.forward(angles, verify);
             float error = Planner::distance(point, verify);
@@ -328,18 +361,18 @@ void TestInteractive::executeMove(const Point2D& start,
             
             // Print details (every 5th point or first/last)
             if (showDetails && (index % 5 == 0 || index == 0 || index == numPoints - 1)) {
-                Serial.printf("%5d | %7.2f | %7.2f | %7.2f | %7.2f | %s\n",
+                Serial.printf("%5d | %7.2f | %7.2f | %7.2f | %7.2f | %-12s | %s\n",
                             index, point.x, point.y,
                             angles.theta1, angles.theta2,
+                            usedConfig == ArmConfig::RIGHT_ELBOW ? "RIGHT_ELBOW" : "LEFT_ELBOW",
                             accurate ? "✅" : "❌");
             }
-            //test communication Serie
+
             // Command motors to move
             if (dxlCtrl) dxlCtrl->syncWriteAngles(angles.theta1, angles.theta2);
             
             // Update motors and wait a bit for movement
             if (dxlCtrl) {
-                // Update motors multiple times to allow movement
                 for (int i = 0; i < 10; i++) {
                     dxlCtrl->update();
                     delay(1);
@@ -349,7 +382,7 @@ void TestInteractive::executeMove(const Point2D& start,
         } else {
             failed++;
             if (showDetails) {
-                Serial.printf("%5d | %7.2f | %7.2f |   FAIL   |   FAIL   | ❌\n",
+                Serial.printf("%5d | %7.2f | %7.2f |   FAIL   |   FAIL   | ---          | ❌\n",
                              index, point.x, point.y);
             }
         }
@@ -358,8 +391,9 @@ void TestInteractive::executeMove(const Point2D& start,
     }
     
     if (showDetails) {
-        Serial.println("─────────────────────────────────────────────────────────────");
-        Serial.printf("Summary: %d passed ✅, %d failed ❌\n", passed, failed);
+        Serial.println("─────────────────────────────────────────────────────────────────────────");
+        Serial.printf("Summary: %d passed ✅, %d failed ❌, %d config switch(es)\n",
+                      passed, failed, configSwitches);
     }
     
     // Wait for final movement to complete
@@ -382,8 +416,8 @@ void TestInteractive::executeMove(const Point2D& start,
         
         // Show final angles
         Serial.println();
-        printAngles(JointAngles(dxlCtrl->getAngle(DynamixelController::ID_M1), dxlCtrl->getAngle(DynamixelController::ID_M2)), "Final angles");
-        //printPoint(point)
+        printAngles(JointAngles(dxlCtrl->getAngle(DynamixelController::ID_M1),
+                                dxlCtrl->getAngle(DynamixelController::ID_M2)), "Final angles");
         Serial.println();
     }
 }

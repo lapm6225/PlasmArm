@@ -10,14 +10,14 @@
  * @brief Arm configuration for inverse kinematics
  * 
  * A 2-DOF SCARA has two IK solutions for most points (elbow left vs right).
- * The optimal configuration depends on which side of the Y-axis the target is:
- *   - Positive-x targets → RIGHT_ELBOW (theta2 ≤ 0)
- *   - Negative-x targets → LEFT_ELBOW  (theta2 ≥ 0)
- *   - AUTO selects based on the sign of the target x-coordinate
+ * The active config is kept until IK fails in it (lazy switching).
+ *   - RIGHT_ELBOW: theta2 ≤ 0 (natural for positive-x side)
+ *   - LEFT_ELBOW:  theta2 ≥ 0 (natural for negative-x side)
+ *   - AUTO: pick based on target x-sign (used only for initial config setup)
  */
 enum class ArmConfig {
-    RIGHT_ELBOW,  // theta2 ≤ 0 — optimal for positive-x targets
-    LEFT_ELBOW,   // theta2 ≥ 0 — optimal for negative-x targets
+    RIGHT_ELBOW,  // theta2 ≤ 0
+    LEFT_ELBOW,   // theta2 ≥ 0
     AUTO          // auto-select: x >= 0 → RIGHT_ELBOW, x < 0 → LEFT_ELBOW
 };
 

@@ -46,7 +46,7 @@ static bool solveForConfig(float x, float y, float r, float L1, float L2,
 }
 
 bool Kinematics::inverse(const Point2D &target, JointAngles &angles,
-                         ArmConfig config) {
+                         ArmConfig config, ArmConfig &usedConfig) {
   float x = target.x;
   float y = target.y;
 
@@ -68,34 +68,40 @@ bool Kinematics::inverse(const Point2D &target, JointAngles &angles,
   cosTheta2 = constrain(cosTheta2, -1.0f, 1.0f);
 
   // ---- Step 3: Resolve AUTO to a concrete config ----
-  if (config == ArmConfig::AUTO) {
-    // Positive-x (or on Y-axis) → RIGHT_ELBOW (negative theta2)
-    // Negative-x → LEFT_ELBOW (positive theta2)
-    config = (x >= 0.0f) ? ArmConfig::RIGHT_ELBOW : ArmConfig::LEFT_ELBOW;
+  ArmConfig preferred = config;
+  if (preferred == ArmConfig::AUTO) {
+    preferred = (x >= 0.0f) ? ArmConfig::RIGHT_ELBOW : ArmConfig::LEFT_ELBOW;
   }
 
   // ---- Step 4: Try the preferred configuration ----
-  bool preferNegative = (config == ArmConfig::RIGHT_ELBOW);
+  bool preferNegative = (preferred == ArmConfig::RIGHT_ELBOW);
 
   if (solveForConfig(x, y, r, L1, L2, cosTheta2, preferNegative, angles)) {
+    usedConfig = preferred;
 #if DEBUG_KINEMATICS
-    Serial.printf("IK: (%.2f, %.2f) r=%.1f -> theta1=%.2f° theta2=%.2f° [%s]\n",
-                  x, y, r, angles.theta1, angles.theta2,
+    Serial.printf("IK: (%.2f, %.2f) -> theta1=%.2f° theta2=%.2f° [%s]\n",
+                  x, y, angles.theta1, angles.theta2,
                   preferNegative ? "RIGHT_ELBOW" : "LEFT_ELBOW");
 #endif
     return true;
   }
 
   // ---- Step 5: Fallback — try the other configuration ----
+  ArmConfig fallback = (preferred == ArmConfig::RIGHT_ELBOW)
+                           ? ArmConfig::LEFT_ELBOW
+                           : ArmConfig::RIGHT_ELBOW;
+  bool fallbackNegative = !preferNegative;
+
 #if DEBUG_KINEMATICS
   Serial.printf("IK: preferred config failed for (%.2f, %.2f), trying fallback\n", x, y);
 #endif
 
-  if (solveForConfig(x, y, r, L1, L2, cosTheta2, !preferNegative, angles)) {
+  if (solveForConfig(x, y, r, L1, L2, cosTheta2, fallbackNegative, angles)) {
+    usedConfig = fallback;
 #if DEBUG_KINEMATICS
-    Serial.printf("IK: (%.2f, %.2f) r=%.1f -> theta1=%.2f° theta2=%.2f° [FALLBACK %s]\n",
-                  x, y, r, angles.theta1, angles.theta2,
-                  !preferNegative ? "RIGHT_ELBOW" : "LEFT_ELBOW");
+    Serial.printf("IK: (%.2f, %.2f) -> theta1=%.2f° theta2=%.2f° [FALLBACK %s]\n",
+                  x, y, angles.theta1, angles.theta2,
+                  fallbackNegative ? "RIGHT_ELBOW" : "LEFT_ELBOW");
 #endif
     return true;
   }
@@ -103,6 +109,13 @@ bool Kinematics::inverse(const Point2D &target, JointAngles &angles,
   // Both configurations failed
   Serial.printf("IK REJECT: no valid config for (%.1f, %.1f)\n", x, y);
   return false;
+}
+
+// Convenience overload: discards usedConfig (for callers that don't track it)
+bool Kinematics::inverse(const Point2D &target, JointAngles &angles,
+                         ArmConfig config) {
+  ArmConfig usedConfig;
+  return inverse(target, angles, config, usedConfig);
 }
 
 void Kinematics::forward(const JointAngles &angles, Point2D &position) {
