@@ -137,6 +137,22 @@ void TestInteractive::processCommand(const String& command,
         Serial.println("Angles (0,0) have been saved");
         return;
     }
+
+    if(cmd == "z-down"){
+        Serial.println("Activating Z down sequence...");
+        SG90 zServo(TOOL_SERVO_PIN, TOOL_SWITCH_PIN, 0, 180);
+        zServo.sg_down(LOW); // Assuming active LOW for the switch
+        Serial.println("Z down sequence completed.");
+        return;
+    }
+
+    if(cmd == "z-up"){
+        Serial.println("Activating Z up sequence...");
+        SG90 zServo(TOOL_SERVO_PIN, TOOL_SWITCH_PIN, 0, 180);
+        zServo.sg_up(LOW); // Assuming active LOW for the switch
+        Serial.println("Z up sequence completed.");
+        return;
+    }
     
     if (cmd == "home") {
         Serial.println("\n═══════════════════════════════════════════════════════════");

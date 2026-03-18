@@ -68,7 +68,10 @@
 #define SERVO_MAX_PULSE 2500 // microseconds
 
 // Tool output (relay, plasma torch trigger, etc.)
-#define TOOL_PIN 26 // GPIO for tool control relay
+#define TOOL_SERVO_PIN 26 // pin pour donner les positions du servo
+#define TOOL_SWITCH_PIN 25 //pin pour lire l'état du switch de pression
+
+
 
 // Serial communication with OpenRB150
 #define RXD2 16

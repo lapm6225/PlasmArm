@@ -20,11 +20,11 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
 #include <freertos/task.h>
-
 #include "Config.h"
 #include "core/Kinematics.h"
 #include "core/Planner.h"
 #include "core/Types.h"
+
 #include "hardware/DynamixelController.h"
 #include "web/WebServer.h"
 #include <queue> // For std::queue in planner task
@@ -129,9 +129,10 @@ void setup() {
   Serial.println("Motors initialized");
 
   // Tool/Z GPIO setup
-  pinMode(TOOL_PIN, OUTPUT);
-  digitalWrite(TOOL_PIN, LOW);
-  Serial.println("Tool GPIO initialized (pin " + String(TOOL_PIN) + ")");
+  pinMode(TOOL_SWITCH_PIN, INPUT_PULLUP);
+  pinMode(TOOL_SERVO_PIN, OUTPUT);
+  digitalWrite(TOOL_SERVO_PIN, LOW);  
+    
 
   // Create FreeRTOS queues
   commandQueue = xQueueCreate(COMMAND_QUEUE_SIZE, sizeof(Command));
@@ -444,11 +445,7 @@ void taskMotionControl(void *parameter) {
         robotState.currentPosition = targetXY;
 
         // Actuate Z-axis (placeholder - adapt to your Z hardware)
-        robotState.toolZ = target.z;
-
-        // Actuate tool GPIO
-        robotState.toolActive = target.toolActive;
-        digitalWrite(TOOL_PIN, target.toolActive ? HIGH : LOW);
+        
 
 #if DEBUG_MOTOR
         Serial.printf("Motion: Target (%.2f, %.2f) -> t1=%.2f, t2=%.2f\n",
