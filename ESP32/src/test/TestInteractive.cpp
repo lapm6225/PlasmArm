@@ -56,7 +56,6 @@ void TestInteractive::run(DynamixelController* dxlCtrl) {
         // Update motors
         if (dxlCtrl) dxlCtrl->update();
 
-        Serial.println(digitalRead(TOOL_SWITCH_PIN));
         // Check for serial input
         while (Serial.available() > 0) {
             char c = Serial.read();
@@ -162,7 +161,7 @@ void TestInteractive::processCommand(const String& command,
 
     if(cmd == "z-up"){
         Serial.println("Activating Z up sequence...");
-        zServo.sg_up(LOW); 
+        zServo.sg_up(20); 
         Serial.println("Z up sequence completed.");
         return;
     }
