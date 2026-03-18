@@ -129,7 +129,7 @@ void setup() {
   Serial.println("Motors initialized");
 
   // Tool/Z GPIO setup
-  pinMode(TOOL_SWITCH_PIN, INPUT_PULLUP);
+  pinMode(TOOL_SWITCH_PIN, INPUT);
   pinMode(TOOL_SERVO_PIN, OUTPUT);
   digitalWrite(TOOL_SERVO_PIN, LOW);  
     

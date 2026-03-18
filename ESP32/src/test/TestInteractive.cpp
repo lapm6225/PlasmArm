@@ -41,6 +41,9 @@ void TestInteractive::run(DynamixelController* dxlCtrl) {
         Serial.printf("Current config: %s\n",
                       currentConfig == ArmConfig::RIGHT_ELBOW ? "RIGHT_ELBOW" : "LEFT_ELBOW");
     }
+
+    // Ensure the switch pin is configured for reliable reading (pull-up so button pulls it LOW when pressed)
+    pinMode(TOOL_SWITCH_PIN, INPUT_PULLUP);
     
     printHelp();
     Serial.println("\n═══════════════════════════════════════════════════════════");
@@ -52,7 +55,8 @@ void TestInteractive::run(DynamixelController* dxlCtrl) {
     while (true) {
         // Update motors
         if (dxlCtrl) dxlCtrl->update();
-        
+
+        Serial.println(digitalRead(TOOL_SWITCH_PIN));
         // Check for serial input
         while (Serial.available() > 0) {
             char c = Serial.read();
@@ -145,18 +149,20 @@ void TestInteractive::processCommand(const String& command,
         return;
     }
 
+    // Use a single SG90 instance to avoid exhausting ESP32's LEDC PWM channels.
+    // Creating a new Servo object repeatedly would eventually hit the 16-channel limit.
+    static SG90 zServo(TOOL_SERVO_PIN, TOOL_SWITCH_PIN);
+
     if(cmd == "z-down"){
         Serial.println("Activating Z down sequence...");
-        SG90 zServo(TOOL_SERVO_PIN, TOOL_SWITCH_PIN, 0, 180);
-        zServo.sg_down(LOW); // Assuming active LOW for the switch
+        zServo.sg_down(LOW); 
         Serial.println("Z down sequence completed.");
         return;
     }
 
     if(cmd == "z-up"){
         Serial.println("Activating Z up sequence...");
-        SG90 zServo(TOOL_SERVO_PIN, TOOL_SWITCH_PIN, 0, 180);
-        zServo.sg_up(LOW); // Assuming active LOW for the switch
+        zServo.sg_up(LOW); 
         Serial.println("Z up sequence completed.");
         return;
     }
