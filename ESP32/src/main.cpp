@@ -335,8 +335,8 @@ void taskTrajectoryPlanner(void *parameter) {
           bool tool = target.toolActive;
 
           TargetState point(pt.x, pt.y, z, tool);
-          if (xQueueSend(motionQueue, &point, pdMS_TO_TICKS(100)) != pdTRUE) {
-            Serial.println("Planner: WARNING - Motion queue full!");
+          if (xQueueSend(motionQueue, &point, portMAX_DELAY) != pdTRUE) {
+            Serial.println("Planner: ERROR - Motion queue send failed!");
           }
           i++;
         }
