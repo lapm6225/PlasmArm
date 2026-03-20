@@ -6,8 +6,17 @@
 // ============================================================================
 // WiFi Configuration
 // ============================================================================
-#define WIFI_SSID "204-2381-Belvedere"
-#define WIFI_PASSWORD "AmandeRose92"
+// Set to true to create an Access Point, false to connect to an existing WiFi
+#define WIFI_AP_MODE true 
+
+// AP Mode Settings (When WIFI_AP_MODE is true)
+#define WIFI_AP_SSID "PlasmArm_ESP32"
+#define WIFI_AP_PASSWORD "12345678" // Must be at least 8 characters
+
+// Station Mode Settings (When WIFI_AP_MODE is false)
+#define WIFI_STA_SSID "204-2381-Belvedere"
+#define WIFI_STA_PASSWORD "AmandeRose92"
+
 #define WIFI_TIMEOUT_MS 10000
 
 // ============================================================================
@@ -134,6 +143,6 @@
 // Set to true to run the simple dynamixel communication test
 #define RUN_DYNAMIXEL_COMM_TEST false
 // Set to true to run the simple effector test
-#define RUN_EFFECTOR_TEST true
+#define RUN_EFFECTOR_TEST false
 
 #endif // CONFIG_H

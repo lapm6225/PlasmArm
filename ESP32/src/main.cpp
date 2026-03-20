@@ -150,30 +150,46 @@ void setup() {
   Serial.printf("  motionQueue:  %d slots (%d bytes each)\n", MOTION_QUEUE_SIZE,
                 sizeof(TargetState));
 
-  // Connect to WiFi
-  Serial.print("Connecting to WiFi: ");
-  Serial.println(WIFI_SSID);
-
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-
-  int retry = 0;
-  while (WiFi.status() != WL_CONNECTED && retry < 20) {
-    delay(500);
-    Serial.print(".");
-    retry++;
-  }
-
-  if (WiFi.status() == WL_CONNECTED) {
-    Serial.println("\nWiFi connected!");
+  // Connect to WiFi or create AP
+  if (WIFI_AP_MODE) {
+    Serial.print("Creating Access Point: ");
+    Serial.println(WIFI_AP_SSID);
+    
+    // Start AP mode
+    WiFi.softAP(WIFI_AP_SSID, WIFI_AP_PASSWORD);
+    
+    Serial.println("\nAccess Point started!");
     Serial.print("IP address: ");
-    Serial.println(WiFi.localIP());
-
+    Serial.println(WiFi.softAPIP());
+    
     // Initialize web server with both queues
     webServer.init(commandQueue, motionQueue);
     webServer.begin();
   } else {
-    Serial.println("\nWiFi connection failed!");
-    Serial.println("Continuing without web interface...");
+    Serial.print("Connecting to WiFi: ");
+    Serial.println(WIFI_STA_SSID);
+
+    WiFi.begin(WIFI_STA_SSID, WIFI_STA_PASSWORD);
+
+    int retry = 0;
+    while (WiFi.status() != WL_CONNECTED && retry < 20) {
+      delay(500);
+      Serial.print(".");
+      retry++;
+    }
+
+    if (WiFi.status() == WL_CONNECTED) {
+      Serial.println("\nWiFi connected!");
+      Serial.print("IP address: ");
+      Serial.println(WiFi.localIP());
+
+      // Initialize web server with both queues
+      webServer.init(commandQueue, motionQueue);
+      webServer.begin();
+    } else {
+      Serial.println("\nWiFi connection failed!");
+      Serial.println("Continuing without web interface...");
+    }
   }
 
   // Create FreeRTOS tasks
