@@ -281,7 +281,7 @@ void taskTrajectoryPlanner(void *parameter) {
 
   unsigned long lastBufferBroadcast = 0;
   const unsigned long BUFFER_BROADCAST_INTERVAL_MS =
-      500; // Rate-limit to 2/sec max
+      200; // Rate-limit to 5/sec max
 
   while (true) {
     // Wait for command from queue (blocking)

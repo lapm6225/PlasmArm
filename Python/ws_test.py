@@ -44,7 +44,7 @@ DEFAULT_IP = "192.168.4.1"
 WS_PORT = 80
 WS_PATH = "/ws"
 DEFAULT_SPEED = 50.0
-FLOW_CONTROL_THRESHOLD = 10   # Envoyer quand cmdFree > ce seuil
+FLOW_CONTROL_THRESHOLD = 15   # Envoyer quand cmdFree > ce seuil
 FLOW_CONTROL_BATCH = 5        # Nombre de commandes à envoyer par batch
 RECONNECT_DELAY = 3.0         # Secondes entre tentatives de reconnexion
 
@@ -245,12 +245,12 @@ class RobotWSClient:
             while i < len(commands):
                 # Attendre que le buffer ait de la place
                 if self.cmd_free <= FLOW_CONTROL_THRESHOLD:
-                    # print(f"\r  ⏳ Attente flow control (cmdFree={self.cmd_free})...", end="", flush=True)
                     try:
-                        await asyncio.wait_for(self.flow_event.wait(), timeout=10.0)
+                        # Attente plus courte pour forcer une réévaluation si on rate un ACK
+                        await asyncio.wait_for(self.flow_event.wait(), timeout=1.0)
                     except asyncio.TimeoutError:
-                        print(f"\n  ⚠️  Timeout flow control! cmdFree={self.cmd_free}, on continue...")
-                        # On force quand même pour éviter un blocage total
+                        print(f"\n  ⚠️  Timeout flow control! cmdFree apparent={self.cmd_free}. Reprise de l'envoi...")
+                        # On force quand même pour éviter un blocage total et relancer les ACKs
                         self.flow_event.set()
 
                 # Envoyer un batch
@@ -270,8 +270,8 @@ class RobotWSClient:
 
                 self._update_flow_control()
 
-                # Petit délai pour laisser le temps à l'ESP32 de répondre
-                await asyncio.sleep(0.02)
+                # Petit délai pour laisser le temps au receiver_loop de traiter les ACKs
+                await asyncio.sleep(0.01)
 
             print(f"\n\n  ✅ Streaming terminé: {self.stream_sent}/{self.stream_total} commandes envoyées")
             return True
