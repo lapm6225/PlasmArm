@@ -26,6 +26,7 @@ class WebServer {
 private:
   AsyncWebServer *server;
   AsyncWebSocket *ws;
+  uint32_t processedCount; // Tracks total WebSocket messages processed
 
   // Queue references (FreeRTOS queues)
   QueueHandle_t commandQueue;

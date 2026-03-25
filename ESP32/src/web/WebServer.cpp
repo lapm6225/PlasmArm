@@ -5,7 +5,7 @@
 
 WebServer::WebServer()
     : server(nullptr), ws(nullptr), commandQueue(nullptr),
-      motionQueue(nullptr) {}
+      motionQueue(nullptr), processedCount(0) {}
 
 WebServer::~WebServer() {
   if (ws) {
@@ -128,6 +128,7 @@ void WebServer::onWebSocketEvent(AsyncWebSocket *server,
       DynamicJsonDocument doc(256);
       doc["type"] = "BUFFER";
       doc["cmdFree"] = freeSlots;
+      doc["handled"] = processedCount;
       if (motionQueue) {
         doc["motFree"] = uxQueueSpacesAvailable(motionQueue);
       }
@@ -142,10 +143,14 @@ void WebServer::onWebSocketEvent(AsyncWebSocket *server,
     // Validate frame completeness (ignore fragmented messages)
     AwsFrameInfo *info = (AwsFrameInfo *)arg;
     if (!info->final || info->index != 0 || info->len != len) {
+      processedCount++;
       Serial.printf("WS: Ignoring fragmented frame (final=%d, idx=%u, "
                     "flen=%u, len=%u)\n",
                     info->final, (unsigned)info->index, (unsigned)info->len,
                     (unsigned)len);
+      if (client->canSend()) {
+        client->text("{\"type\":\"ERROR\",\"msg\":\"Fragmented ignored\",\"handled\":" + String(processedCount) + "}");
+      }
       return;
     }
 
@@ -155,23 +160,40 @@ void WebServer::onWebSocketEvent(AsyncWebSocket *server,
     message = String((char *)data, len);
     Command cmd;
 
-    if (parseCommand(message, cmd) && commandQueue) {
-      if (xQueueSend(commandQueue, &cmd, pdMS_TO_TICKS(100)) == pdTRUE) {
-        // ACK with current buffer status -- only if outbound queue has room
-        // This prevents "Too many messages queued" which kills the connection
+    if (parseCommand(message, cmd)) {
+      if (commandQueue && xQueueSend(commandQueue, &cmd, 0) == pdTRUE) {
+        processedCount++; // Increment only when successfully queued
+
+        // Always try to send an ACK so Python's in_flight counter stays accurate.
+        // If the outbound queue is full, call cleanupClients() to free space first.
+        if (!client->canSend()) {
+          ws->cleanupClients(); // Flush stale/completed sends
+        }
         if (client->canSend()) {
           int freeSlots = uxQueueSpacesAvailable(commandQueue);
-          DynamicJsonDocument doc(256);
-          doc["type"] = "ACK";
-          doc["cmdFree"] = freeSlots;
-          String json;
-          serializeJson(doc, json);
-          client->text(json);
+          // Minimal ACK to save buffer space: ~45 bytes
+          String ack = "{\"type\":\"ACK\",\"cmdFree\":" + String(freeSlots) +
+                       ",\"handled\":" + String(processedCount) + "}";
+          client->text(ack);
+        } else {
+          // Outbound queue still full: the next STATUS broadcast (which goes
+          // through safeTextAll) will carry the latest handled/cmdFree, so
+          // Python will eventually re-sync. Log for debugging.
+          Serial.printf("WS: ACK dropped (outbound full) handled=%u\n", processedCount);
         }
       } else {
-        if (client->canSend()) {
-          client->text("{\"type\":\"ERROR\",\"msg\":\"Buffer Full\"}");
+        // Command queue full: notify Python so it backs off
+        if (!client->canSend()) {
+          ws->cleanupClients();
         }
+        if (client->canSend()) {
+          client->text("{\"type\":\"ERROR\",\"msg\":\"Buffer Full\",\"handled\":" + String(processedCount) + "}");
+        }
+      }
+    } else {
+      // Return ERROR for invalid commands
+      if (client->canSend()) {
+        client->text("{\"type\":\"ERROR\",\"msg\":\"Invalid Command\",\"handled\":" + String(processedCount) + "}");
       }
     }
   }
@@ -229,6 +251,7 @@ void WebServer::broadcastStatus(const RobotState &state) {
   doc["theta2"] = state.currentAngles.theta2;
   doc["isMoving"] = state.isMoving;
   doc["isHomed"] = state.isHomed;
+  doc["handled"] = processedCount;
 
   // Include buffer status in every status broadcast
   if (commandQueue) {
@@ -251,6 +274,7 @@ void WebServer::broadcastBufferStatus(int cmdFreeSlots) {
   DynamicJsonDocument doc(256);
   doc["type"] = "BUFFER";
   doc["cmdFree"] = cmdFreeSlots;
+  doc["handled"] = processedCount;
   if (motionQueue) {
     doc["motFree"] = uxQueueSpacesAvailable(motionQueue);
   }

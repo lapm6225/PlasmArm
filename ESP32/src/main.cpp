@@ -250,15 +250,21 @@ void loop() {
 void taskWebHandler(void *parameter) {
   Serial.println("Task WebHandler started on Core 0");
 
-  while (true) {
-    // Web server handles requests asynchronously
-    // This task mainly serves as a placeholder for future synchronous
-    // operations
+  unsigned long lastStatusBroadcast = 0;
+  const unsigned long STATUS_BROADCAST_INTERVAL_MS = 500;
 
+  while (true) {
     // Cleanup WebSocket clients periodically
     webServer.cleanup();
 
-    vTaskDelay(pdMS_TO_TICKS(100)); // 100ms delay
+    // Safely broadcast status from this dedicated Core 0 task
+    unsigned long now = millis();
+    if (now - lastStatusBroadcast >= STATUS_BROADCAST_INTERVAL_MS) {
+      lastStatusBroadcast = now;
+      webServer.broadcastStatus(robotState);
+    }
+
+    vTaskDelay(pdMS_TO_TICKS(50)); // 50ms delay
   }
 }
 
@@ -279,21 +285,9 @@ void taskTrajectoryPlanner(void *parameter) {
                            robotState.currentPosition.y, robotState.toolZ,
                            robotState.toolActive);
 
-  unsigned long lastBufferBroadcast = 0;
-  const unsigned long BUFFER_BROADCAST_INTERVAL_MS =
-      200; // Rate-limit to 5/sec max
-
   while (true) {
     // Wait for command from queue (blocking)
     if (xQueueReceive(commandQueue, &cmd, portMAX_DELAY) == pdTRUE) {
-
-      // Rate-limited buffer status broadcast (prevents WS queue overflow)
-      unsigned long now = millis();
-      if (now - lastBufferBroadcast >= BUFFER_BROADCAST_INTERVAL_MS) {
-        lastBufferBroadcast = now;
-        int freeSlots = uxQueueSpacesAvailable(commandQueue);
-        webServer.broadcastBufferStatus(freeSlots);
-      }
 
       switch (cmd.type) {
       case Command::MOVE_TO: {
@@ -490,19 +484,14 @@ void taskMotionControl(void *parameter) {
     unsigned long now = millis();
     if (now - lastStatusBroadcast >= STATUS_BROADCAST_INTERVAL_MS) {
       lastStatusBroadcast = now;
-      webServer.broadcastStatus(robotState);
+
+      // DO NOT call webServer.broadcastStatus() here from Core 1! 
+      // It is now safely handled by taskWebHandler on Core 0.
 
       // Verbose position logging to serial
       int cmdUsed = COMMAND_QUEUE_SIZE - uxQueueSpacesAvailable(commandQueue);
       int motUsed = MOTION_QUEUE_SIZE - uxQueueSpacesAvailable(motionQueue);
-      /*
-      //broadcast position
-      Serial.printf(
-          "Motion: pos(%.1f, %.1f) z=%.1f tool=%s | cmdQ=%d/%d motQ=%d/%d\n",
-          robotState.currentPosition.x, robotState.currentPosition.y,
-          robotState.toolZ, robotState.toolActive ? "ON" : "OFF", cmdUsed,
-          COMMAND_QUEUE_SIZE, motUsed, MOTION_QUEUE_SIZE);
-          */
+      
       // broadcast angles and position
       Serial.printf("Motion: angles(%.1f, %.1f) \t|  pos(%.1f, %.1f) \t| "
                     "cmdQ=%d/%d motQ=%d/%d\n",
