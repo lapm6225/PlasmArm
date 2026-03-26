@@ -23,8 +23,8 @@
 // Robot Physical Parameters
 // ============================================================================
 // Arm lengths in millimeters
-#define ARM_LENGTH_1 152.75f // Length of first link (base to elbow)
-#define ARM_LENGTH_2 188.35f // Length of second link (elbow to end effector)
+#define ARM_LENGTH_1 220.05f // Length of first link (base to elbow)
+#define ARM_LENGTH_2 217.65f // Length of second link (elbow to end effector)
 
 // Workspace limits (SCARA half-circle workspace)
 // The robot sits at the origin (0,0) and can reach a half-annulus
@@ -78,11 +78,11 @@
 
 // Tool output (relay, plasma torch trigger, etc.)
 #define TOOL_SERVO_PIN 26 // pin pour donner les positions du servo
-#define TOOL_SWITCH_PIN 35 //pin pour lire l'état du switch de pression
+#define TOOL_SWITCH_PIN 32 //pin pour lire l'état du switch de pression
 
 
 
-// Serial communication with OpenRB150
+// Serial communication with Dynamixels
 #define RXD2 16
 #define TXD2 17
 
@@ -143,6 +143,6 @@
 // Set to true to run the simple dynamixel communication test
 #define RUN_DYNAMIXEL_COMM_TEST false
 // Set to true to run the simple effector test
-#define RUN_EFFECTOR_TEST false
+#define RUN_EFFECTOR_TEST true
 
 #endif // CONFIG_H

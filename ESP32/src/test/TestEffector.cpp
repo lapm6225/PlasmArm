@@ -22,7 +22,7 @@ void runEffectorTest() {
     Serial.println("  'd' : Lancer effector->down() (descendre jusqu'au contact avec la switch)");
     Serial.println("  'u' : Lancer effector->up() (remonter de 20 degres)");
     Serial.println("  'a<num>' : Aller a un angle specifique (ex: a90)");
-    Serial.println("  's' : Lire l'etat de la switch (pin 25)");
+    Serial.println("  's' : Lire l'etat de la switch");
     
     while (true) {
         if (Serial.available()) {
