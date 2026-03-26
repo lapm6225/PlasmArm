@@ -55,6 +55,7 @@ void SG90::up(int degrees, int stepDelayMs) {
     // Moves the servo decreasing the angle by 'degrees'
     int target = _angle + degrees;
     if (target < 0) target = 0;
+    if (target > 180) target = 180;
     
     while (_angle < target) {
         write(_angle + 1);

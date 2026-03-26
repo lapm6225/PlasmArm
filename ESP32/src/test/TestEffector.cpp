@@ -36,7 +36,7 @@ void runEffectorTest() {
                 Serial.println(effector->getAngle());
             } 
             else if (cmd == "u") {
-                Serial.println("Demarrage montee (up) de 20 degres...");
+                Serial.println("Demarrage montee (up) de 60 degres...");
                 effector->up();
                 Serial.print("Montee terminee. Angle actuel: ");
                 Serial.println(effector->getAngle());
