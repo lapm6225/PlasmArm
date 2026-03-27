@@ -1,0 +1,21 @@
+{"type":"MOVE_TO", "x": 0, "y": 350, "speed": 100}
+{"type":"TOOL", "state":"UP"}
+{"type":"TOOL", "state":"DOWN"} 
+{"type":"CONFIG_CHANGE", "config": 0} 
+{"type":"CONFIG_CHANGE", "config": 1}  
+                            (0=LEFT, 1=RIGHT)
+
+{"type":"TOOL", "state":"UP"}
+{"type":"DELAY", "ms": 500}
+{"type":"MOVE_TO", "x": 200, "y": 200, "speed": 100}
+{"type":"TOOL", "state":"DOWN"}
+{"type":"DELAY", "ms": 500}
+{"type":"MOVE_TO", "x": 200, "y": 300, "speed": 100}
+{"type":"MOVE_TO", "x": 300, "y": 300, "speed": 100}
+{"type":"TOOL", "state":"UP"}
+{"type":"DELAY", "ms": 500}
+{"type":"MOVE_TO", "x": 200, "y": 200, "speed": 100}
+{"type":"TOOL", "state":"DOWN"}
+{"type":"DELAY", "ms": 500}
+
+
