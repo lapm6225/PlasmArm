@@ -5,7 +5,7 @@
 #include "../core/Planner.h"
 #include "../core/Types.h"
 #include "../hardware/DynamixelController.h"
-#include "../hardware/sg90.h"
+#include "../hardware/SG90.h"
 #include <queue>
 
 /**

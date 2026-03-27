@@ -81,7 +81,9 @@ void TestDynamixelComm::processCommand(const String& command, DynamixelControlle
     
     if (cmd == "angles" || cmd == "pos") {
         // Reading current angles
+        // Bus settling delay between reads prevents RS-485 packet collision
         float a1 = dxlCtrl->getAngle(DynamixelController::ID_M1);
+        delay(15); // Let bus fully settle before querying the other motor
         float a2 = dxlCtrl->getAngle(DynamixelController::ID_M2);
         Serial.printf("Motor 1 (ID %d): %.2f deg\n", DynamixelController::ID_M1, a1);
         Serial.printf("Motor 2 (ID %d): %.2f deg\n", DynamixelController::ID_M2, a2);

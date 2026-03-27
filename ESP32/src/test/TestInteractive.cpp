@@ -83,6 +83,8 @@ void TestInteractive::printHelp() {
     Serial.println("  set-home     - Deactivate motor to manually home");
     Serial.println("  save-home    - Save home angles");
     Serial.println("  pos          - Show current position, angles and config");
+    Serial.println("  up           - Pen up");
+    Serial.println("  down         - Pen down (to switch)");
     Serial.println("  test         - Run test sequence");
     Serial.println("  help         - Show this help");
     Serial.println();
@@ -108,7 +110,9 @@ void TestInteractive::processCommand(const String& command,
         
         if (dxlCtrl) {
             // Read actual angles from motors
+            // Bus settling delay between reads prevents RS-485 packet collision
             angles.theta1 = dxlCtrl->getAngle(DynamixelController::ID_M1);
+            delay(15); // Let bus fully settle before querying the other motor
             angles.theta2 = dxlCtrl->getAngle(DynamixelController::ID_M2);
             // Update Cartesian position based on real angles
             kin.forward(angles, currentPos);
@@ -152,16 +156,16 @@ void TestInteractive::processCommand(const String& command,
     // Creating a new Servo object repeatedly would eventually hit the 16-channel limit.
     static SG90 zServo(TOOL_SERVO_PIN, TOOL_SWITCH_PIN);
 
-    if(cmd == "z-down"){
+    if (cmd == "z-down" || cmd == "down") {
         Serial.println("Activating Z down sequence...");
         zServo.down(); 
         Serial.println("Z down sequence completed.");
         return;
     }
 
-    if(cmd == "z-up"){
+    if (cmd == "z-up" || cmd == "up") {
         Serial.println("Activating Z up sequence...");
-        zServo.up(20); 
+        zServo.up(60); // Default up by 60 degrees for safety/clearance
         Serial.println("Z up sequence completed.");
         return;
     }
@@ -201,8 +205,17 @@ void TestInteractive::processCommand(const String& command,
             Point2D(100, 100),
             Point2D(200, 100),
         };
-        
+
+        Serial.println("Activating Z up sequence...");
+        zServo.up(60); // Default up by 60 degrees for safety/clearance
+        Serial.println("Z up sequence completed.");
+
         for (int i = 0; i < 5; i++) {
+            if (i==1){
+                Serial.println("Activating Z down sequence...");
+                zServo.down(); 
+                Serial.println("Z down sequence completed.");
+            }
             Serial.printf("\n--- Test move %d/%d ---\n", i + 1, 5);
             executeMove(currentPos, testPoints[i], kin, planner, dxlCtrl, true, currentConfig);
             currentPos = testPoints[i];
@@ -213,9 +226,13 @@ void TestInteractive::processCommand(const String& command,
                     dxlCtrl->update();
                     delay(10);
                 }
-                delay(1000);  // Pause between moves
+                delay(500);  // Pause between moves
             }
         }
+        Serial.println("Activating Z up sequence...");
+        zServo.up(60); // Default up by 60 degrees for safety/clearance
+        Serial.println("Z up sequence completed.");
+
         Serial.println("\n✅ Test sequence completed!");
         return;
     }

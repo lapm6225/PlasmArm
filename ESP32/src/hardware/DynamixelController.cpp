@@ -6,7 +6,7 @@ const float DynamixelController::POSITION_TOLERANCE = 1.0f;
 const float DynamixelController::DEG_TO_PULSE = 4096.0f / 360.0f;
 
 DynamixelController::DynamixelController(HardwareSerial& serial, int dirPin) 
-    : dxl(serial, dirPin) {
+    : dxl(serial, dirPin), hwSerial(serial) {
 }
 
 bool DynamixelController::init() {
@@ -87,22 +87,20 @@ void DynamixelController::syncWriteAngles(float theta1_mech, float theta2_mech) 
 }
 
 float DynamixelController::getAngle(uint8_t id) {
-    delay(2); // Small delay to prevent RS485 bus collisions after intense loops
-    float raw = 0.0f;
-    for (int i = 0; i < 5; i++) {
-        raw = dxl.getPresentPosition(id, UNIT_DEGREE);
-        // If the library returns exactly 0.0f, it usually means communication failed.
-        // Unless it is actually at physical 0.00, picking up a zero is risky.
-        if (raw != 0.0f) break;
-        delay(5);
+    // Single read — RX flush inside readOneMotor ensures clean data
+    float raw = readOneMotor(id);
+    if (raw < 0.0f) {
+        Serial.printf("Warning: Failed to read motor %d\n", id);
+        return 0.0f;
     }
+    
     float pos = normalize(raw);
     if (id == ID_M1) {
         return internalToMech_ID1(pos);
     } else if (id == ID_M2) {
         return internalToMech_ID2(pos);
     }
-    return pos;
+    return 0.0f;
 }
 
 void DynamixelController::setTorque(bool enable) {
@@ -123,47 +121,105 @@ void DynamixelController::setHomeMode() {
     Serial.println("=== MODE SET HOME ===");
     setTorque(false);
     homeMode = true;
+    moving1 = false;
+    moving2 = false;
 }
 
 void DynamixelController::saveHome() {
     Serial.println("=== SAUVEGARDE HOME ===");
     
-    // First, turn torque ON to hold the motors right where they are!
-    // We do NOT call setGoalPosition, because if a previous read returned 0.0 (error), 
-    // sending goal position 0.0 is exactly what made it physically jolt!
-    setTorque(true);
-    homeMode = false;
+    // RX flush inside readOneMotor prevents cross-motor contamination.
+    const int NUM_SAMPLES = 5;
+    float samples1[NUM_SAMPLES];
+    float samples2[NUM_SAMPLES];
+    int count1 = 0, count2 = 0;
     
-    // Allow the bus entirely to settle
-    delay(50);
-    
-    float new_offset1 = 0.0f;
-    float new_offset2 = 0.0f;
-    
-    for(int i = 0; i < 10; i++) {
-        new_offset1 = dxl.getPresentPosition(ID_M1, UNIT_DEGREE);
-        if (new_offset1 != 0.0f) break;
-        delay(10);
+    // ---- Read Motor 1 ----
+    Serial.println("Reading Motor 1...");
+    for (int i = 0; i < NUM_SAMPLES * 2 && count1 < NUM_SAMPLES; i++) {
+        delay(30);
+        float val = readOneMotor(ID_M1);
+        if (val >= 0.0f) {
+            samples1[count1++] = val;
+            Serial.printf("  M1 read %d: %.2f\n", count1, val);
+        }
     }
     
-    for(int i = 0; i < 10; i++) {
-        new_offset2 = dxl.getPresentPosition(ID_M2, UNIT_DEGREE);
-        if (new_offset2 != 0.0f) break;
-        delay(10);
+    // ---- Read Motor 2 ----
+    Serial.println("Reading Motor 2...");
+    for (int i = 0; i < NUM_SAMPLES * 2 && count2 < NUM_SAMPLES; i++) {
+        delay(30);
+        float val = readOneMotor(ID_M2);
+        if (val >= 0.0f) {
+            samples2[count2++] = val;
+            Serial.printf("  M2 read %d: %.2f\n", count2, val);
+        }
     }
     
+    if (count1 < 3 || count2 < 3) {
+        Serial.printf("ERROR: Not enough readings (M1=%d, M2=%d). Aborting save.\n", count1, count2);
+        return;
+    }
+    
+    // Sort both arrays to extract median
+    auto sortArr = [](float* arr, int n) {
+        for (int i = 1; i < n; i++) {
+            float key = arr[i];
+            int j = i - 1;
+            while (j >= 0 && arr[j] > key) {
+                arr[j + 1] = arr[j];
+                j--;
+            }
+            arr[j + 1] = key;
+        }
+    };
+    
+    sortArr(samples1, count1);
+    sortArr(samples2, count2);
+    
+    float new_offset1 = samples1[count1 / 2];
+    float new_offset2 = samples2[count2 / 2];
+    float spread1 = samples1[count1 - 1] - samples1[0];
+    float spread2 = samples2[count2 - 1] - samples2[0];
+    
+    Serial.printf("  Motor 1: %d readings, median=%.2f, spread=%.2f\n", count1, new_offset1, spread1);
+    Serial.printf("  Motor 2: %d readings, median=%.2f, spread=%.2f\n", count2, new_offset2, spread2);
+    
+    if (spread1 > 2.0f) {
+        Serial.printf("Warning: Motor 1 spread=%.2f (unstable?)\n", spread1);
+    }
+    if (spread2 > 2.0f) {
+        Serial.printf("Warning: Motor 2 spread=%.2f (unstable?)\n", spread2);
+    }
+
     offset_ID3 = new_offset1;
     offset_ID20 = new_offset2;
     
     target1_internal = normalize(offset_ID3);
     target2_internal = normalize(offset_ID20);
     
+    // Ensure the Target Goal is updated in the motors BEFORE enabling torque.
+    // This stops the motor from jolting back to its old target!
+    delay(10);
+    dxl.setGoalPosition(ID_M1, target1_internal, UNIT_DEGREE);
+    delay(10);
+    dxl.setGoalPosition(ID_M2, target2_internal, UNIT_DEGREE);
+    delay(10);
+
     // Update the sync write buffer so it matches the current stopped position
     sw_data_array[0].goal_position = (int32_t)(target1_internal * DEG_TO_PULSE);
     sw_data_array[1].goal_position = (int32_t)(target2_internal * DEG_TO_PULSE);
     sw_infos.is_info_changed = true;
     
-    Serial.printf("Home positions successfully read: ID3=%.2f, ID20=%.2f\n", offset_ID3, offset_ID20);
+    // Prevent update() from immediately probing the bus
+    moving1 = false;
+    moving2 = false;
+    
+    // Now turn torque ON to hold the motors right where they are!
+    setTorque(true);
+    homeMode = false;
+    
+    Serial.printf("Home positions successfully saved: ID3=%.2f, ID20=%.2f\n", offset_ID3, offset_ID20);
 }
 
 bool DynamixelController::isMoving() {
@@ -172,22 +228,28 @@ bool DynamixelController::isMoving() {
 }
 
 void DynamixelController::update() {
+    // Throttle updates to prevent flooding the RS485 bus
+    static unsigned long lastUpdate = 0;
+    if (millis() - lastUpdate < 100) return;
+    lastUpdate = millis();
+
     // Compare present position to target to release the moving flag
-    if (!homeMode && moving1) {
-        float raw1 = dxl.getPresentPosition(ID_M1, UNIT_DEGREE);
-        // Ignore communication drops returning exact 0.0 if not meant to
-        if (raw1 != 0.0f || target1_internal == 0.0f) {
-            float pos1 = normalize(raw1);
-            float diff1 = fabs(wrapAngle180(pos1 - target1_internal));
-            if (diff1 < POSITION_TOLERANCE) moving1 = false;
+    if (!homeMode && (moving1 || moving2)) {
+        if (moving1) {
+            float raw1 = readOneMotor(ID_M1);
+            if (raw1 >= 0.0f) {
+                float pos1 = normalize(raw1);
+                float diff1 = fabs(wrapAngle180(pos1 - target1_internal));
+                if (diff1 < POSITION_TOLERANCE) moving1 = false;
+            }
         }
-    }
-    if (!homeMode && moving2) {
-        float raw2 = dxl.getPresentPosition(ID_M2, UNIT_DEGREE);
-        if (raw2 != 0.0f || target2_internal == 0.0f) {
-            float pos2 = normalize(raw2);
-            float diff2 = fabs(wrapAngle180(pos2 - target2_internal));
-            if (diff2 < POSITION_TOLERANCE) moving2 = false;
+        if (moving2) {
+            float raw2 = readOneMotor(ID_M2);
+            if (raw2 >= 0.0f) {
+                float pos2 = normalize(raw2);
+                float diff2 = fabs(wrapAngle180(pos2 - target2_internal));
+                if (diff2 < POSITION_TOLERANCE) moving2 = false;
+            }
         }
     }
 }
@@ -224,20 +286,46 @@ float DynamixelController::mechToInternal_ID2(float cmd_deg) {
 }
 
 float DynamixelController::internalToMech_ID1(float a_int) {
-    // ID1: Subtract offset from internal to get mechanical. 
-    // If internal is 159.19, subtract 159.19 = 0.
     float mech = a_int - offset_ID3;
     mech = wrapAngle180(mech);
-    // After wrap, we enforce the constraints of the joint
     return constrain(mech, 0.0f, 180.0f);
 }
 
 float DynamixelController::internalToMech_ID2(float a_int) {
-    // ID2: offset - internal gives mechanical because ID2 is reversed!
-    // If internal is 154.79 and offset is 154.79 -> 0.0
-    // If internal is 144.79 -> 154.79 - 144.79 = +10.0
     float mech = offset_ID20 - a_int;
     mech = wrapAngle180(mech);
-    // After wrap, enforce constraints
     return constrain(mech, -150.0f, 150.0f);
+}
+
+float DynamixelController::readOneMotor(uint8_t id) {
+    // *** ROOT CAUSE FIX ***
+    // Flush the hardware serial RX buffer BEFORE reading.
+    // Without this, stale response bytes from a PREVIOUS motor's response
+    // linger in the ESP32's 256-byte serial FIFO. The Dynamixel2Arduino library
+    // then parses those old bytes as if they were the current motor's response,
+    // causing Motor 1 to return Motor 2's position (and vice versa).
+    while (hwSerial.available()) {
+        hwSerial.read();
+    }
+    delay(1); // Let any in-flight bytes arrive and drain
+    while (hwSerial.available()) {
+        hwSerial.read();
+    }
+    
+    // Now read — the RX buffer is guaranteed clean
+    float pos = dxl.getPresentPosition(id, UNIT_RAW);
+    
+    // Check for library errors
+    if (dxl.getLastLibErrCode() != 0) {
+        return -1.0f;
+    }
+    
+    int32_t raw = (int32_t)pos;
+    
+    // Sanity check: valid range for single-turn mode
+    if (raw < 0 || raw > 4095) {
+        return -1.0f;
+    }
+    
+    return (float)raw / DEG_TO_PULSE;
 }

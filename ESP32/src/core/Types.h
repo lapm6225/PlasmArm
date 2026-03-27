@@ -1,5 +1,6 @@
 #ifndef TYPES_H
 #define TYPES_H
+#include "../Config.h"
 
 /**
  * @file Types.h
@@ -67,8 +68,8 @@ struct RobotState {
   bool isHomed;              // Homing status
 
   RobotState()
-      : currentPosition(0, 300), toolZ(0.0f), toolActive(false),
-        currentAngles(90, 0), isMoving(false), isHomed(false) {}
+      : currentPosition(ARM_LENGTH_1+ARM_LENGTH_1,0), toolZ(0.0f), toolActive(false),
+        currentAngles(0, 0), isMoving(false), isHomed(false) {}
 };
 
 // Command from web interface or G-code parser

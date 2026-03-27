@@ -59,12 +59,22 @@ public:
     bool isMoving();
 
     /**
-     * @brief Manually update state for movement tracking (optional if non-blocking isn't strictly polled)
+     * @brief Manually update state for movement tracking
      */
     void update();
 
 private:
     Dynamixel2Arduino dxl;
+    HardwareSerial& hwSerial; // Direct reference for RX buffer flushing
+
+    /**
+     * @brief Read a single motor's position with RX buffer flush.
+     *        Flushes the hardware serial RX buffer before reading to prevent
+     *        stale bytes from a previous motor's response being parsed.
+     * @param id The motor ID
+     * @return float Internal angle in degrees (0-360), or -1.0f on failure
+     */
+    float readOneMotor(uint8_t id);
 
     // Offsets
     float offset_ID3 = 41.0f;
