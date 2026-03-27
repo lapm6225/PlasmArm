@@ -50,6 +50,17 @@ void runInteractiveTest() {
     delete dxlCtrl;
 }
 
+void runInteractiveTest2() {
+    // Create motor instances
+    DynamixelController* dxlCtrl = new DynamixelController(Serial2);
+    
+    // Run interactive test
+    TestInteractive2::run(dxlCtrl);
+    
+    // Cleanup (never reached in interactive mode, but good practice)
+    delete dxlCtrl;
+}
+
 void runDynamixelCommTest() {
     // Create motor instances
     DynamixelController* dxlCtrl = new DynamixelController(Serial2);
@@ -60,3 +71,5 @@ void runDynamixelCommTest() {
     // Cleanup
     delete dxlCtrl;
 }
+//{"type":"MOVE_TO", "x": 150, "y": 200, "speed": 100}
+//{"type":"TOOL", "state":"UP"}
