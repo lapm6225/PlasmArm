@@ -71,8 +71,8 @@ def generate_scene(window, scene, bicep, forearm, origin, elbow, shoulder):
     # --- Segment 2 : coude ---
     elbow.setParentItem(shoulder)
     elbow.setScale(7.2/6.4)
-    elbow.setTransformOriginPoint(0, (elbow.pixmap().height() / 2)-18*18)
-    elbow.setPos(shoulder.pixmap().width(), 0)
+    elbow.setTransformOriginPoint(95, (elbow.pixmap().height() / 2)-75)
+    elbow.setPos(shoulder.pixmap().width()-225, 30)
 
 
     # --- Arcs de portée (inchangés) ---
