@@ -6,20 +6,20 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>922</width>
-    <height>893</height>
+    <width>1100</width>
+    <height>950</height>
    </rect>
   </property>
   <property name="minimumSize">
    <size>
-    <width>922</width>
-    <height>893</height>
+    <width>1100</width>
+    <height>950</height>
    </size>
   </property>
   <property name="maximumSize">
    <size>
-    <width>922</width>
-    <height>893</height>
+    <width>1200</width>
+    <height>950</height>
    </size>
   </property>
   <property name="acceptDrops">
@@ -324,7 +324,14 @@
         <item>
          <widget class="QPushButton" name="Button_Stop">
           <property name="text">
-           <string>Arrêt</string>
+           <string>Resume/Arrêt</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="pushButton">
+          <property name="text">
+           <string>Annuler</string>
           </property>
          </widget>
         </item>
@@ -400,7 +407,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>922</width>
+     <width>1100</width>
      <height>22</height>
     </rect>
    </property>
@@ -411,7 +418,16 @@
     <addaction name="actionLoad"/>
     <addaction name="actionFermer"/>
    </widget>
+   <widget class="QMenu" name="menuConnection">
+    <property name="title">
+     <string>Connection</string>
+    </property>
+    <addaction name="actionConnect"/>
+    <addaction name="actionDisconnect"/>
+    <addaction name="actionStatus"/>
+   </widget>
    <addaction name="menuFichier"/>
+   <addaction name="menuConnection"/>
   </widget>
   <action name="actionLoad">
    <property name="text">
@@ -431,6 +447,21 @@
   <action name="actionFermer">
    <property name="text">
     <string>Fermer</string>
+   </property>
+  </action>
+  <action name="actionConnect">
+   <property name="text">
+    <string>Connect</string>
+   </property>
+  </action>
+  <action name="actionDisconnect">
+   <property name="text">
+    <string>Disconnect</string>
+   </property>
+  </action>
+  <action name="actionStatus">
+   <property name="text">
+    <string>Status</string>
    </property>
   </action>
  </widget>

@@ -1,12 +1,16 @@
 from PyQt6 import QtWidgets, uic
-from PyQt6.QtWidgets import QGraphicsScene, QGraphicsRectItem, QLineEdit
+from PyQt6.QtWidgets import QGraphicsScene, QGraphicsRectItem, QLineEdit, QGraphicsPixmapItem
 from PyQt6.QtCore import  QRectF
+from PyQt6.QtGui import QPixmap
 import sys
 import math
 from collections import namedtuple
 import dxf
 import animation
 from dxf_parser import DxfParser
+import communication as comm
+
+
 
 
 # --- Variables Globales ---
@@ -27,11 +31,11 @@ bicep = Arm(150, 20)
 forearm = Arm(167.6, 20)
 
 # --- Données de position ---
-Position = namedtuple("Position", ["x", "y"])
+Point = namedtuple("Position", ["x", "y"])
 tool_pos = Position(forearm.length+bicep.length, 0) 
-origin = Position(400, 400)
+origin = Point(450, 400)
 
-# Vérification des limites du bras
+# --- Vérification des limites du bras ---
 def limit(shoulder, elbow):
     # Angle max du 2e bras
     if elbow > 155 or elbow <- 155:
@@ -110,6 +114,8 @@ def go_home():
     elbow_angle = -154
     animator.setAngle(shoulder_angle)
     animator_elbow.setAngle(elbow_angle)
+    # await client.send_command({"type": "HOME"})
+    # await asyncio.sleep(0.3)
 #-----------------------------
 
 
@@ -133,6 +139,8 @@ def tool_up():
         dxf.add_text(window, "Tool already raised")
     else:
         tool_raised = True
+        # await client.send_command({"type": "TOOL", "state": True, "z": 0.0})
+        # await asyncio.sleep(0.3)
         dxf.add_text(window, "Tool raised")
 
 # --- Descendre l'outil ---
@@ -142,6 +150,8 @@ def tool_down():
         dxf.add_text(window, "Tool already lowered")
     else:
         tool_raised = False
+        # await client.send_command({"type": "TOOL", "state": False, "z": 0.0})
+        # await asyncio.sleep(0.3)
         dxf.add_text(window, "Tool lowered")
 
 # --- mouvement linéaire selon la vitesse linéaire ---
@@ -149,25 +159,29 @@ def move_forward():
     global tool_pos
     y = tool_pos.y - linear_speed
     tool_pos.y = y
-    print(tool_pos.x, tool_pos.y)
+    print(tool_pos.x, -(tool_pos.y))
+    text = f"Position de l'effecteur: ({tool_pos.x}, {-tool_pos.y})"
+    dxf.add_text(window, text )
     
 def move_backward():
     global tool_pos
     y = tool_pos.y + linear_speed
     tool_pos.y = y
-    print(tool_pos.x, tool_pos.y)
+    text = f"Position de l'effecteur: ({tool_pos.x}, {-tool_pos.y})"
+    dxf.add_text(window, text )
 
 def move_right():
     global tool_pos
     x=tool_pos.x + linear_speed
     tool_pos.x = x
-    print(tool_pos.x, tool_pos.y)
-
+    text = f"Position de l'effecteur: ({tool_pos.x}, {-tool_pos.y})"
+    dxf.add_text(window, text )
 def move_left():
     global tool_pos
     x=tool_pos.x - linear_speed
     tool_pos.x = x
-    print(tool_pos.x, tool_pos.y)
+    text = f"Position de l'effecteur: ({tool_pos.x}, {-tool_pos.y})"
+    dxf.add_text(window, text )
 
 # --- mouvement angulaire selon la vitesse angulaire---
 def shoulder_clockwise():
@@ -211,6 +225,8 @@ def func_print():
 
 # --- Arrêt ---
 def func_stop():
+    # await client.send_command({"type": "STOP"})
+    # await asyncio.sleep(0.5)
     dxf.add_text(window, "Arrêt de la découpe")
 # -------------
 
@@ -219,6 +235,7 @@ def func_stop():
 ##########################
 if __name__ == '__main__':
     # initialisation de l'appli
+    client = comm.RobotWSClient()
     app = QtWidgets.QApplication(sys.argv)
     window = QtWidgets.QMainWindow()
     uic.loadUi('plasmarm.ui', window)
@@ -263,8 +280,10 @@ if __name__ == '__main__':
     
     # Génération de la scène pour l'affichage--- 
     scene = QGraphicsScene()
-    shoulder = QGraphicsRectItem(QRectF(0, 0, bicep.length, bicep.width))
-    elbow = QGraphicsRectItem(QRectF(0, 0, forearm.length, forearm.width))
+    shoulder_img = QPixmap("bras1.png")      # image du segment 1
+    elbow_img = QPixmap("bras2.png")       # image du segment 2
+    shoulder = QGraphicsPixmapItem(shoulder_img)
+    elbow = QGraphicsPixmapItem(elbow_img)
     animator = animation.AngleAnimator(shoulder)
     animator_elbow = animation.AngleAnimator(elbow)
     animation.generate_scene(window, scene, bicep, forearm, origin, elbow, shoulder)
@@ -272,3 +291,6 @@ if __name__ == '__main__':
     # Démarer l'application
     window.show()
     sys.exit(app.exec())
+
+
+   
