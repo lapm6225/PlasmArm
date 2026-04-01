@@ -12,7 +12,7 @@ public:
 
     /**
      * @brief Construct a new Dynamixel Controller
-     * 
+     *
      * @param serial The HardwareSerial port to use (e.g., Serial2)
      * @param dirPin The direction pin for half-duplex, or -1 if not needed
      */
@@ -53,6 +53,29 @@ public:
     void saveHome();
 
     /**
+     * @brief Check if in home setup mode (torque off)
+     */
+    bool isHomeMode() { return homeMode; }
+
+    /**
+     * @brief Load home offsets from external source (e.g., NVS)
+     */
+    void setOffsets(float off1, float off2) {
+        offset_ID3 = off1;
+        offset_ID20 = off2;
+        target1_internal = normalize(off1);
+        target2_internal = normalize(off2);
+    }
+
+    /**
+     * @brief Get current home offsets
+     */
+    void getOffsets(float& off1, float& off2) {
+        off1 = offset_ID3;
+        off2 = offset_ID20;
+    }
+
+    /**
      * @brief Check if any motor is currently moving to target
      * @return true if moving, false otherwise
      */
@@ -65,7 +88,7 @@ public:
 
 private:
     Dynamixel2Arduino dxl;
-    HardwareSerial& hwSerial; // Direct reference for RX buffer flushing
+    HardwareSerial& hwSerial;  // Direct reference for RX buffer flushing
 
     /**
      * @brief Read a single motor's position with RX buffer flush.
@@ -90,7 +113,7 @@ private:
 
     // SyncWrite configuration
     static const uint8_t DXL_ID_CNT = 2;
-    static const uint16_t SW_START_ADDR = 116; // Goal Position
+    static const uint16_t SW_START_ADDR = 116;  // Goal Position
     static const uint16_t SW_DATA_LEN = 4;
     static const float DEG_TO_PULSE;
 
@@ -111,4 +134,4 @@ private:
     float internalToMech_ID2(float a_int);
 };
 
-#endif // DYNAMIXEL_CONTROLLER_H
+#endif  // DYNAMIXEL_CONTROLLER_H

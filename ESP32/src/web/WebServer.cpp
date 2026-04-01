@@ -3,301 +3,306 @@
 #include "web_assets.h"
 #include <ArduinoJson.h>
 
-WebServer::WebServer()
-    : server(nullptr), ws(nullptr), commandQueue(nullptr),
-      motionQueue(nullptr), processedCount(0) {}
+WebServer::WebServer() : server(nullptr), ws(nullptr), commandQueue(nullptr), processedCount(0) {}
 
 WebServer::~WebServer() {
-  if (ws) {
-    delete ws;
-  }
-  if (server) {
-    delete server;
-  }
+    if (ws) {
+        delete ws;
+    }
+    if (server) {
+        delete server;
+    }
 }
 
-void WebServer::init(QueueHandle_t cmdQueue, QueueHandle_t motQueue) {
-  commandQueue = cmdQueue;
-  motionQueue = motQueue;
+void WebServer::init(QueueHandle_t cmdQueue) {
+    commandQueue = cmdQueue;
 
-  server = new AsyncWebServer(80);
-  ws = new AsyncWebSocket("/ws");
+    server = new AsyncWebServer(80);
+    ws = new AsyncWebSocket("/ws");
 
-  // WebSocket event handler
-  ws->onEvent([this](AsyncWebSocket *server, AsyncWebSocketClient *client,
-                     AwsEventType type, void *arg, uint8_t *data, size_t len) {
-    this->onWebSocketEvent(server, client, type, arg, data, len);
-  });
+    // WebSocket event handler
+    ws->onEvent([this](AsyncWebSocket* server, AsyncWebSocketClient* client, AwsEventType type,
+                       void* arg, uint8_t* data, size_t len) {
+        this->onWebSocketEvent(server, client, type, arg, data, len);
+    });
 
-  // HTTP routes
-  server->on("/", HTTP_GET, [this](AsyncWebServerRequest *request) {
-    this->handleRoot(request);
-  });
+    // HTTP routes
+    server->on("/", HTTP_GET,
+               [this](AsyncWebServerRequest* request) { this->handleRoot(request); });
 
-  server->on("/move", HTTP_GET, [this](AsyncWebServerRequest *request) {
-    this->handleMove(request);
-  });
+    server->on("/move", HTTP_GET,
+               [this](AsyncWebServerRequest* request) { this->handleMove(request); });
 
-  server->on("/home", HTTP_GET, [this](AsyncWebServerRequest *request) {
-    this->handleHome(request);
-  });
+    server->on("/home", HTTP_GET,
+               [this](AsyncWebServerRequest* request) { this->handleHome(request); });
 
-  server->on("/status", HTTP_GET, [this](AsyncWebServerRequest *request) {
-    this->handleStatus(request);
-  });
+    server->on("/status", HTTP_GET,
+               [this](AsyncWebServerRequest* request) { this->handleStatus(request); });
 
-  // Add WebSocket handler
-  server->addHandler(ws);
+    // Add WebSocket handler
+    server->addHandler(ws);
 }
 
 void WebServer::begin() {
-  if (server) {
-    server->begin();
-    Serial.println("Web server started");
-  }
+    if (server) {
+        server->begin();
+        Serial.println("Web server started");
+    }
 }
 
 // partie http
-void WebServer::handleRoot(AsyncWebServerRequest *request) {
-  // Send the HTML page from PROGMEM with UTF-8 charset
-  request->send(200, "text/html; charset=UTF-8", WEB_HTML);
+void WebServer::handleRoot(AsyncWebServerRequest* request) {
+    // Send the HTML page from PROGMEM with UTF-8 charset
+    request->send(200, "text/html; charset=UTF-8", WEB_HTML);
 }
 
-void WebServer::handleMove(AsyncWebServerRequest *request) {
-  if (request->hasParam("x") && request->hasParam("y")) {
-    float x = request->getParam("x")->value().toFloat();
-    float y = request->getParam("y")->value().toFloat();
+void WebServer::handleMove(AsyncWebServerRequest* request) {
+    if (request->hasParam("x") && request->hasParam("y")) {
+        float x = request->getParam("x")->value().toFloat();
+        float y = request->getParam("y")->value().toFloat();
 
-    Command cmd(Command::MOVE_TO, x, y);
+        Command cmd(Command::MOVE_TO, x, y);
 
+        if (commandQueue) {
+            if (xQueueSend(commandQueue, &cmd, pdMS_TO_TICKS(100)) == pdTRUE) {
+                request->send(200, "text/plain", "OK");
+            } else {
+                request->send(503, "text/plain", "Command queue full");
+            }
+        } else {
+            request->send(500, "text/plain", "Command queue not initialized");
+        }
+    } else {
+        request->send(400, "text/plain", "Missing parameters");
+    }
+}
+
+void WebServer::handleHome(AsyncWebServerRequest* request) {
     if (commandQueue) {
-      if (xQueueSend(commandQueue, &cmd, pdMS_TO_TICKS(100)) == pdTRUE) {
-        request->send(200, "text/plain", "OK");
-      } else {
-        request->send(503, "text/plain", "Command queue full");
-      }
+        Command cmd(Command::HOME, 0.0f, 0.0f);
+        if (xQueueSend(commandQueue, &cmd, pdMS_TO_TICKS(100)) == pdTRUE) {
+            request->send(200, "text/plain", "Homing started");
+        } else {
+            request->send(503, "text/plain", "Command queue full");
+        }
     } else {
-      request->send(500, "text/plain", "Command queue not initialized");
+        request->send(500, "text/plain", "Command queue not initialized");
     }
-  } else {
-    request->send(400, "text/plain", "Missing parameters");
-  }
 }
 
-void WebServer::handleHome(AsyncWebServerRequest *request) {
-  if (commandQueue) {
-    Command cmd(Command::HOME, 0.0f, 0.0f);
-    if (xQueueSend(commandQueue, &cmd, pdMS_TO_TICKS(100)) == pdTRUE) {
-      request->send(200, "text/plain", "Homing started");
-    } else {
-      request->send(503, "text/plain", "Command queue full");
+void WebServer::handleStatus(AsyncWebServerRequest* request) {
+    DynamicJsonDocument doc(512);
+    doc["status"] = "running";
+    if (commandQueue) {
+        doc["cmdFree"] = uxQueueSpacesAvailable(commandQueue);
     }
-  } else {
-    request->send(500, "text/plain", "Command queue not initialized");
-  }
-}
 
-void WebServer::handleStatus(AsyncWebServerRequest *request) {
-  DynamicJsonDocument doc(512);
-  doc["status"] = "running";
-  if (commandQueue) {
-    doc["cmdFree"] = uxQueueSpacesAvailable(commandQueue);
-  }
-  if (motionQueue) {
-    doc["motFree"] = uxQueueSpacesAvailable(motionQueue);
-  }
-
-  String json;
-  serializeJson(doc, json);
-  request->send(200, "application/json", json);
+    String json;
+    serializeJson(doc, json);
+    request->send(200, "application/json", json);
 }
 // fin partie http
 
 // partie websocket
-void WebServer::onWebSocketEvent(AsyncWebSocket *server,
-                                 AsyncWebSocketClient *client,
-                                 AwsEventType type, void *arg, uint8_t *data,
-                                 size_t len) {
-  if (type == WS_EVT_CONNECT) {
-    Serial.printf("WebSocket client #%u connected from %s\n", client->id(),
-                  client->remoteIP().toString().c_str());
+void WebServer::onWebSocketEvent(AsyncWebSocket* server, AsyncWebSocketClient* client,
+                                 AwsEventType type, void* arg, uint8_t* data, size_t len) {
+    if (type == WS_EVT_CONNECT) {
+        Serial.printf("WebSocket client #%u connected from %s\n", client->id(),
+                      client->remoteIP().toString().c_str());
 
-    // Send initial buffer status on connect
-    if (commandQueue) {
-      int freeSlots = uxQueueSpacesAvailable(commandQueue);
-      DynamicJsonDocument doc(256);
-      doc["type"] = "BUFFER";
-      doc["cmdFree"] = freeSlots;
-      doc["handled"] = processedCount;
-      if (motionQueue) {
-        doc["motFree"] = uxQueueSpacesAvailable(motionQueue);
-      }
-      String json;
-      serializeJson(doc, json);
-      client->text(json);
-    }
-
-  } else if (type == WS_EVT_DISCONNECT) {
-    Serial.printf("WebSocket client #%u disconnected\n", client->id());
-  } else if (type == WS_EVT_DATA) {
-    // Validate frame completeness (ignore fragmented messages)
-    AwsFrameInfo *info = (AwsFrameInfo *)arg;
-    if (!info->final || info->index != 0 || info->len != len) {
-      processedCount++;
-      Serial.printf("WS: Ignoring fragmented frame (final=%d, idx=%u, "
-                    "flen=%u, len=%u)\n",
-                    info->final, (unsigned)info->index, (unsigned)info->len,
-                    (unsigned)len);
-      if (client->canSend()) {
-        client->text("{\"type\":\"ERROR\",\"msg\":\"Fragmented ignored\",\"handled\":" + String(processedCount) + "}");
-      }
-      return;
-    }
-
-    // Build String with explicit length (data is NOT null-terminated!)
-    String message;
-    message.reserve(len + 1);
-    message = String((char *)data, len);
-    Command cmd;
-
-    if (parseCommand(message, cmd)) {
-      if (commandQueue && xQueueSend(commandQueue, &cmd, 0) == pdTRUE) {
-        processedCount++; // Increment only when successfully queued
-
-        // Always try to send an ACK so Python's in_flight counter stays accurate.
-        // If the outbound queue is full, call cleanupClients() to free space first.
-        if (!client->canSend()) {
-          ws->cleanupClients(); // Flush stale/completed sends
+        // Send initial buffer status on connect
+        if (commandQueue) {
+            int freeSlots = uxQueueSpacesAvailable(commandQueue);
+            DynamicJsonDocument doc(256);
+            doc["type"] = "BUFFER";
+            doc["cmdFree"] = freeSlots;
+            doc["handled"] = processedCount;
+            String json;
+            serializeJson(doc, json);
+            client->text(json);
         }
-        if (client->canSend()) {
-          int freeSlots = uxQueueSpacesAvailable(commandQueue);
-          // Minimal ACK to save buffer space: ~45 bytes
-          String ack = "{\"type\":\"ACK\",\"cmdFree\":" + String(freeSlots) +
-                       ",\"handled\":" + String(processedCount) + "}";
-          client->text(ack);
+
+    } else if (type == WS_EVT_DISCONNECT) {
+        Serial.printf("WebSocket client #%u disconnected\n", client->id());
+    } else if (type == WS_EVT_DATA) {
+        // Validate frame completeness (ignore fragmented messages)
+        AwsFrameInfo* info = (AwsFrameInfo*)arg;
+        if (!info->final || info->index != 0 || info->len != len) {
+            processedCount++;
+            Serial.printf(
+                "WS: Ignoring fragmented frame (final=%d, idx=%u, "
+                "flen=%u, len=%u)\n",
+                info->final, (unsigned)info->index, (unsigned)info->len, (unsigned)len);
+            if (client->canSend()) {
+                client->text("{\"type\":\"ERROR\",\"msg\":\"Fragmented ignored\",\"handled\":" +
+                             String(processedCount) + "}");
+            }
+            return;
+        }
+
+        // Build String with explicit length (data is NOT null-terminated!)
+        String message;
+        message.reserve(len + 1);
+        message = String((char*)data, len);
+        Command cmd;
+
+        if (parseCommand(message, cmd)) {
+            if (commandQueue && xQueueSend(commandQueue, &cmd, 0) == pdTRUE) {
+                processedCount++;  // Increment only when successfully queued
+
+                // Always try to send an ACK so Python's in_flight counter stays accurate.
+                // If the outbound queue is full, call cleanupClients() to free space first.
+                if (!client->canSend()) {
+                    ws->cleanupClients();  // Flush stale/completed sends
+                }
+                if (client->canSend()) {
+                    int freeSlots = uxQueueSpacesAvailable(commandQueue);
+                    // Minimal ACK to save buffer space: ~45 bytes
+                    String ack = "{\"type\":\"ACK\",\"cmdFree\":" + String(freeSlots) +
+                                 ",\"handled\":" + String(processedCount) + "}";
+                    client->text(ack);
+                } else {
+                    // Outbound queue still full: the next STATUS broadcast (which goes
+                    // through safeTextAll) will carry the latest handled/cmdFree, so
+                    // Python will eventually re-sync. Log for debugging.
+                    Serial.printf("WS: ACK dropped (outbound full) handled=%u\n", processedCount);
+                }
+            } else {
+                // Command queue full: notify Python so it backs off
+                if (!client->canSend()) {
+                    ws->cleanupClients();
+                }
+                if (client->canSend()) {
+                    client->text("{\"type\":\"ERROR\",\"msg\":\"Buffer Full\",\"handled\":" +
+                                 String(processedCount) + "}");
+                }
+            }
         } else {
-          // Outbound queue still full: the next STATUS broadcast (which goes
-          // through safeTextAll) will carry the latest handled/cmdFree, so
-          // Python will eventually re-sync. Log for debugging.
-          Serial.printf("WS: ACK dropped (outbound full) handled=%u\n", processedCount);
+            // Return ERROR for invalid commands
+            if (client->canSend()) {
+                client->text("{\"type\":\"ERROR\",\"msg\":\"Invalid Command\",\"handled\":" +
+                             String(processedCount) + "}");
+            }
         }
-      } else {
-        // Command queue full: notify Python so it backs off
-        if (!client->canSend()) {
-          ws->cleanupClients();
-        }
-        if (client->canSend()) {
-          client->text("{\"type\":\"ERROR\",\"msg\":\"Buffer Full\",\"handled\":" + String(processedCount) + "}");
-        }
-      }
-    } else {
-      // Return ERROR for invalid commands
-      if (client->canSend()) {
-        client->text("{\"type\":\"ERROR\",\"msg\":\"Invalid Command\",\"handled\":" + String(processedCount) + "}");
-      }
     }
-  }
 }
 
-bool WebServer::parseCommand(const String &json, Command &cmd) {
-  DynamicJsonDocument doc(1024);
-  DeserializationError error = deserializeJson(doc, json);
+bool WebServer::parseCommand(const String& json, Command& cmd) {
+    DynamicJsonDocument doc(1024);
+    DeserializationError error = deserializeJson(doc, json);
 
-  if (error) {
-    Serial.printf("JSON parse error: %s\n", error.c_str());
-    return false;
-  }
+    if (error) {
+        Serial.printf("JSON parse error: %s\n", error.c_str());
+        return false;
+    }
 
-  String typeStr = doc["type"] | "MOVE_TO";
+    String typeStr = doc["type"] | "MOVE_TO";
 
-  if (typeStr == "MOVE_TO") {
-    float x = doc["x"] | 0.0f;
-    float y = doc["y"] | 0.0f;
-    float z = doc["z"] | 0.0f;
-    float speed = doc["speed"] | DEFAULT_SPEED;
-    bool tool = doc["tool"] | false;
-    cmd = Command(Command::MOVE_TO, x, y, z, speed, tool);
-  } else if (typeStr == "TOOL") {
-    // Tool control: {"type":"TOOL","state":true,"z":5.0}
-    bool state = doc["state"] | false;
-    float z = doc["z"] | 0.0f;
-    cmd = Command(Command::TOOL_CONTROL, state, z);
-  } else if (typeStr == "HOME") {
-    cmd = Command(Command::HOME, HOME_X, HOME_Y);
-  } else if (typeStr == "STOP") {
-    cmd = Command(Command::STOP, 0.0f, 0.0f);
-  } else if (typeStr == "SET_SPEED") {
-    float speed = doc["speed"] | DEFAULT_SPEED;
-    cmd = Command(Command::SET_SPEED, 0.0f, 0.0f, 0.0f, speed);
-  } else {
-    Serial.printf("WebServer: Unknown command type: %s\n", typeStr.c_str());
-    return false;
-  }
+    if (typeStr == "MOVE_TO") {
+        float x = doc["x"] | 0.0f;
+        float y = doc["y"] | 0.0f;
+        float z = doc["z"] | 0.0f;
+        float speed = doc["speed"] | DEFAULT_SPEED;
+        bool tool = doc["tool"] | false;
+        cmd = Command(Command::MOVE_TO, x, y, z, speed, tool);
+    } else if (typeStr == "TOOL") {
+        // Tool control: {"type":"TOOL","state":"UP"} or {"type":"TOOL","state":"DOWN"}
+        // Also supports legacy: {"type":"TOOL","state":true,"z":5.0}
+        if (doc["state"].is<const char*>()) {
+            String stateStr = doc["state"].as<String>();
+            if (stateStr == "UP") {
+                cmd = Command(Command::TOOL_UP, 0.0f, 0.0f);
+            } else {
+                cmd = Command(Command::TOOL_DOWN, 0.0f, 0.0f);
+            }
+        } else {
+            // Legacy boolean format
+            bool state = doc["state"] | false;
+            float z = doc["z"] | 0.0f;
+            cmd = Command(Command::TOOL_CONTROL, state, z);
+        }
+    } else if (typeStr == "HOME") {
+        cmd = Command(Command::HOME, HOME_X, HOME_Y);
+    } else if (typeStr == "STOP") {
+        cmd = Command(Command::STOP, 0.0f, 0.0f);
+    } else if (typeStr == "SET_SPEED") {
+        float speed = doc["speed"] | DEFAULT_SPEED;
+        cmd = Command(Command::SET_SPEED, 0.0f, 0.0f, 0.0f, speed);
+    } else if (typeStr == "DELAY") {
+        cmd = Command(Command::DELAY, 0.0f, 0.0f);
+        cmd.delayMs = doc["ms"] | 0;
+    } else if (typeStr == "CONFIG_CHANGE") {
+        cmd = Command(Command::CONFIG_CHANGE, 0.0f, 0.0f);
+        cmd.newConfig = doc["config"] | 0;
+    } else if (typeStr == "SET_HOME") {
+        cmd = Command(Command::SET_HOME, 0.0f, 0.0f);
+    } else if (typeStr == "SAVE_HOME") {
+        cmd = Command(Command::SAVE_HOME, 0.0f, 0.0f);
+    } else {
+        Serial.printf("WebServer: Unknown command type: %s\n", typeStr.c_str());
+        return false;
+    }
 
-  return true;
+    return true;
 }
 
-void WebServer::broadcastStatus(const RobotState &state) {
-  if (!ws || ws->count() == 0)
-    return; // No clients connected
+void WebServer::broadcastStatus(const RobotState& state) {
+    if (!ws || ws->count() == 0)
+        return;  // No clients connected
 
-  DynamicJsonDocument doc(512);
-  doc["type"] = "STATUS";
-  doc["x"] = state.currentPosition.x;
-  doc["y"] = state.currentPosition.y;
-  doc["z"] = state.toolZ;
-  doc["tool"] = state.toolActive;
-  doc["theta1"] = state.currentAngles.theta1;
-  doc["theta2"] = state.currentAngles.theta2;
-  doc["isMoving"] = state.isMoving;
-  doc["isHomed"] = state.isHomed;
-  doc["handled"] = processedCount;
+    DynamicJsonDocument doc(512);
+    doc["type"] = "STATUS";
+    doc["x"] = state.currentPosition.x;
+    doc["y"] = state.currentPosition.y;
+    doc["z"] = state.toolZ;
+    doc["tool"] = state.toolActive;
+    doc["theta1"] = state.currentAngles.theta1;
+    doc["theta2"] = state.currentAngles.theta2;
+    doc["isMoving"] = state.isMoving;
+    doc["isHomed"] = state.isHomed;
+    doc["handled"] = processedCount;
 
-  // Include buffer status in every status broadcast
-  if (commandQueue) {
-    doc["cmdFree"] = uxQueueSpacesAvailable(commandQueue);
-  }
-  if (motionQueue) {
-    doc["motFree"] = uxQueueSpacesAvailable(motionQueue);
-  }
+    // Include buffer status in every status broadcast
+    if (commandQueue) {
+        doc["cmdFree"] = uxQueueSpacesAvailable(commandQueue);
+    }
 
-  String json;
-  serializeJson(doc, json);
+    String json;
+    json.reserve(256);
+    serializeJson(doc, json);
 
-  safeTextAll(json);
+    safeTextAll(json);
 }
 
 void WebServer::broadcastBufferStatus(int cmdFreeSlots) {
-  if (!ws || ws->count() == 0)
-    return; // No clients connected
+    if (!ws || ws->count() == 0)
+        return;  // No clients connected
 
-  DynamicJsonDocument doc(256);
-  doc["type"] = "BUFFER";
-  doc["cmdFree"] = cmdFreeSlots;
-  doc["handled"] = processedCount;
-  if (motionQueue) {
-    doc["motFree"] = uxQueueSpacesAvailable(motionQueue);
-  }
+    DynamicJsonDocument doc(256);
+    doc["type"] = "BUFFER";
+    doc["cmdFree"] = cmdFreeSlots;
+    doc["handled"] = processedCount;
 
-  String json;
-  serializeJson(doc, json);
+    String json;
+    json.reserve(256);
+    serializeJson(doc, json);
 
-  safeTextAll(json);
+    safeTextAll(json);
 }
 
-void WebServer::safeTextAll(const String &message) {
-  // Send to each connected client individually, skipping those with full
-  // queues. Unlike ws->textAll(), this won't trigger "Too many messages queued"
-  // disconnects.
-  for (auto &client : ws->getClients()) {
-    if (client.status() == WS_CONNECTED && client.canSend()) {
-      client.text(message);
+void WebServer::safeTextAll(const String& message) {
+    // Send to each connected client individually, skipping those with full
+    // queues. Unlike ws->textAll(), this won't trigger "Too many messages queued"
+    // disconnects.
+    for (auto& client : ws->getClients()) {
+        if (client.status() == WS_CONNECTED && client.canSend()) {
+            client.text(message);
+        }
     }
-  }
 }
 
 void WebServer::cleanup() {
-  if (ws) {
-    ws->cleanupClients();
-  }
+    if (ws) {
+        ws->cleanupClients();
+    }
 }

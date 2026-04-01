@@ -1,0 +1,15 @@
+BasedOnStyle: Google
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+ColumnLimit: 100
+AccessModifierOffset: -4
+IndentCaseLabels: true
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+BreakBeforeBraces: Attach
+SpaceAfterCStyleCast: false
+SpaceBeforeParens: ControlStatements
+PointerAlignment: Left
+SortIncludes: Never
