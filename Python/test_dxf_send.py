@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-test_dxf_send.py -- Parse a DXF file and stream commands to ESP32.
+test_dxf_send.py -- Parse a DXF file and stream commands to ESP32. Result: un JSON pret a charger sur le ESP32
 
 Usage:
     python test_dxf_send.py <dxf_file> [--ip IP] [--dry-run]
@@ -13,6 +13,7 @@ Examples:
 
 import asyncio
 import argparse
+import json
 import os
 import sys
 import time
@@ -33,7 +34,7 @@ def phase_header(num: int, title: str):
     print(f"{'=' * 60}{C.END}\n")
 
 
-def parse_dxf(filename: str) -> list:
+def parse_dxf(filename: str, export_json: str = None, export_json_lines: str = None) -> list:
     """Phase 1: Parse DXF and show preview (dry run)."""
     phase_header(1, "DXF Parsing (Dry Run)")
     
@@ -42,6 +43,37 @@ def parse_dxf(filename: str) -> list:
     
     commands = parser.parse()
     
+    # Detect unreachable points and optionally exclude them to avoid runtime robot errors
+    filtered = []
+    unreachable_count = 0
+    for cmd in commands:
+        if cmd.get("type") == "MOVE_TO":
+            if not cmd.get("ik_valid", True):
+                print(f"  {C.YELLOW}[WARN]{C.END} Point inatteignable ignoré: x={cmd.get('x')}, y={cmd.get('y')} (skip)")
+                unreachable_count += 1
+                continue
+
+            if cmd.get("config_switch", False):
+                print(f"  {C.CYAN}[INFO]{C.END} Changement de config à ce point: from {cmd.get('from_arm_config')} to {cmd.get('to_arm_config')} x={cmd.get('x')}, y={cmd.get('y')}")
+
+        filtered.append(cmd)
+
+    if unreachable_count > 0:
+        print(f"  {C.YELLOW}[WARN]{C.END} {unreachable_count} / {len(commands)} MOVE_TO points inatteignables supprimés")
+
+    commands = filtered
+
+    if export_json:
+        parser.save_commands_json(commands, export_json)
+        print(f"  {C.GREEN}[OK]{C.END} Saved JSON command file: {export_json}")
+
+    if export_json_lines:
+        # e.g. one JSON object per line
+        with open(export_json_lines, "w", encoding="utf-8") as f:
+            for cmd in commands:
+                f.write(json.dumps(cmd) + "\n")
+        print(f"  {C.GREEN}[OK]{C.END} Saved JSON-lines file: {export_json_lines}")
+
     # Stats
     entities = parser.entities
     move_count = sum(1 for c in commands if c["type"] == "MOVE_TO")
@@ -136,6 +168,8 @@ def main():
     parser.add_argument("dxf_file", help="Path to DXF file")
     parser.add_argument("--ip", default=DEFAULT_IP, help=f"ESP32 IP address (default: {DEFAULT_IP})")
     parser.add_argument("--dry-run", action="store_true", help="Parse only, don't connect to robot")
+    parser.add_argument("--export-json", default="commands.json", help="Export parsed commands to JSON file")
+    parser.add_argument("--export-json-lines", default=None, help="Export line-per-command JSON file")
     args = parser.parse_args()
     
     if not os.path.exists(args.dxf_file):
@@ -143,7 +177,7 @@ def main():
         sys.exit(1)
     
     # Phase 1: Always parse
-    commands = parse_dxf(args.dxf_file)
+    commands = parse_dxf(args.dxf_file, export_json=args.export_json, export_json_lines=args.export_json_lines)
     
     if args.dry_run:
         print(f"\n{C.GREEN}[OK]{C.END} DXF test completed (dry run)!\n")

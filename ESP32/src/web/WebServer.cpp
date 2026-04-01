@@ -2,6 +2,7 @@
 #include "../Config.h"
 #include "web_assets.h"
 #include <ArduinoJson.h>
+#include <SPIFFS.h>
 
 WebServer::WebServer()
     : server(nullptr), ws(nullptr), commandQueue(nullptr),
@@ -19,6 +20,12 @@ WebServer::~WebServer() {
 void WebServer::init(QueueHandle_t cmdQueue, QueueHandle_t motQueue) {
   commandQueue = cmdQueue;
   motionQueue = motQueue;
+
+  if (!SPIFFS.begin(true)) {
+    Serial.println("SPIFFS mount failed in WebServer::init");
+  } else {
+    Serial.println("SPIFFS mounted successfully");
+  }
 
   server = new AsyncWebServer(80);
   ws = new AsyncWebSocket("/ws");
@@ -44,6 +51,35 @@ void WebServer::init(QueueHandle_t cmdQueue, QueueHandle_t motQueue) {
 
   server->on("/status", HTTP_GET, [this](AsyncWebServerRequest *request) {
     this->handleStatus(request);
+  });
+
+  // Upload JSON file body (array/object) and enqueue commands
+  server->on("/upload", HTTP_POST, nullptr, nullptr, [this](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
+    // support chunked upload; we simply handle the full body at once
+    static String body;
+    if (index == 0) {
+      body = String();
+      body.reserve(total + 1);
+    }
+    body += String((char *)data, len);
+
+    if (index + len == total) {
+      if (loadCommandsFromJson(body)) {
+        request->send(200, "application/json", "{\"status\":\"queued\"}");
+      } else {
+        request->send(400, "application/json", "{\"status\":\"invalid_or_empty\"}");
+      }
+    }
+  });
+
+  server->on("/run_file", HTTP_GET, [this](AsyncWebServerRequest *request) {
+    const char *path = "/commands.json";
+    bool ok = loadCommandsFromSPIFFS(path);
+    if (ok) {
+      request->send(200, "application/json", "{\"status\":\"file_loaded\"}");
+    } else {
+      request->send(404, "application/json", "{\"status\":\"file_not_found_or_invalid\"}");
+    }
   });
 
   // Add WebSocket handler
@@ -217,6 +253,22 @@ bool WebServer::parseCommand(const String &json, Command &cmd) {
     float speed = doc["speed"] | DEFAULT_SPEED;
     bool tool = doc["tool"] | false;
     cmd = Command(Command::MOVE_TO, x, y, z, speed, tool);
+
+    // Optional precomputed joint angles
+    if (doc.containsKey("theta1") && doc.containsKey("theta2")) {
+      cmd.hasJointAngles = true;
+      cmd.theta1 = doc["theta1"] | 0.0f;
+      cmd.theta2 = doc["theta2"] | 0.0f;
+    } else {
+      cmd.hasJointAngles = false;
+      cmd.theta1 = 0.0f;
+      cmd.theta2 = 0.0f;
+    }
+
+    // Optional reachable flag from pre-processing (skip invalid)
+    if (doc.containsKey("reachable") && !doc["reachable"]) {
+      return false;
+    }
   } else if (typeStr == "TOOL") {
     // Tool control: {"type":"TOOL","state":true,"z":5.0}
     bool state = doc["state"] | false;
@@ -235,6 +287,74 @@ bool WebServer::parseCommand(const String &json, Command &cmd) {
   }
 
   return true;
+}
+
+bool WebServer::loadCommandsFromJson(const String &jsonContent) {
+  DynamicJsonDocument doc(4096);
+  DeserializationError error = deserializeJson(doc, jsonContent);
+  if (error) {
+    Serial.printf("loadCommandsFromJson: JSON error %s\n", error.c_str());
+    return false;
+  }
+
+  JsonArray arr;
+  if (doc.is<JsonArray>()) {
+    arr = doc.as<JsonArray>();
+  } else if (doc.containsKey("commands") && doc["commands"].is<JsonArray>()) {
+    arr = doc["commands"].as<JsonArray>();
+  } else {
+    Serial.println("loadCommandsFromJson: invalid JSON structure");
+    return false;
+  }
+
+  bool queuedAny = false;
+  for (JsonVariant item : arr) {
+    if (!item.is<JsonObject>())
+      continue;
+
+    String itemJson;
+    serializeJson(item, itemJson);
+    Command cmd;
+    if (!parseCommand(itemJson, cmd)) {
+      Serial.println("loadCommandsFromJson: skipping invalid command");
+      continue;
+    }
+
+    if (commandQueue && xQueueSend(commandQueue, &cmd, pdMS_TO_TICKS(100)) == pdTRUE) {
+      queuedAny = true;
+    } else {
+      Serial.println("loadCommandsFromJson: command queue full");
+      break;
+    }
+  }
+
+  return queuedAny;
+}
+
+bool WebServer::loadCommandsFromSPIFFS(const char *path) {
+  if (!SPIFFS.begin(true)) {
+    Serial.println("SPIFFS Mount Failed");
+    return false;
+  }
+
+  if (!SPIFFS.exists(path)) {
+    Serial.printf("SPIFFS file not found: %s\n", path);
+    return false;
+  }
+
+  File file = SPIFFS.open(path, FILE_READ);
+  if (!file) {
+    Serial.printf("Unable to open SPIFFS file: %s\n", path);
+    return false;
+  }
+
+  String content;
+  while (file.available()) {
+    content += char(file.read());
+  }
+  file.close();
+
+  return loadCommandsFromJson(content);
 }
 
 void WebServer::broadcastStatus(const RobotState &state) {

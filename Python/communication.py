@@ -401,6 +401,19 @@ class RobotWSClient:
             print('ok')
         await self.stream_commands(commands)
 
+    async def load_gcode(self, file):
+        """Charger un fichier g-code-like et streamer vers ESP32."""
+        from dxf_parser import gcode_to_commands
+
+        try:
+            commands = gcode_to_commands(file)
+        except Exception as e:
+            print(f" Impossible de parser {file}: {e}")
+            return False
+
+        print(f" G-code chargé: {file} → {len(commands)} commandes")
+        return await self.stream_commands(commands)
+
 
 # ============================================================================
 # Chargement DXF

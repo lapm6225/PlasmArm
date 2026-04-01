@@ -2,6 +2,8 @@
 #define TYPES_H
 #include "../Config.h"
 
+"Role: definir structures de données communes pour le contrôleur de robot SCARA"
+
 /**
  * @file Types.h
  * @brief Common data structures for the SCARA robot controller
@@ -44,16 +46,20 @@ struct JointAngles {
   JointAngles(float t1, float t2) : theta1(t1), theta2(t2) {}
 };
 
-// 4D motion target: X, Y, Z, Tool
+// 4D motion target: X, Y, Z, Tool + optional precomputed joint values
 struct TargetState {
   float x;
   float y;
   float z;
   bool toolActive;
+  bool hasJointAngles;
+  float theta1;
+  float theta2;
 
-  TargetState() : x(0), y(0), z(0), toolActive(false) {}
+  TargetState()
+      : x(0), y(0), z(0), toolActive(false), hasJointAngles(false), theta1(0), theta2(0) {}
   TargetState(float x, float y, float z = 0.0f, bool tool = false)
-      : x(x), y(y), z(z), toolActive(tool) {}
+      : x(x), y(y), z(z), toolActive(tool), hasJointAngles(false), theta1(0), theta2(0) {}
 
   Point2D toPoint2D() const { return Point2D(x, y); }
 };
@@ -77,6 +83,7 @@ struct Command {
   enum Type {
     MOVE_TO,       // Move to absolute position
     MOVE_RELATIVE, // Move relative to current position
+    JOINT_MOVE,    // Move by precomputed joint angles (set theta1/theta2)
     HOME,          // Home the robot
     SET_SPEED,     // Set movement speed
     TOOL_CONTROL,  // Control tool (on/off + Z)
@@ -88,8 +95,10 @@ struct Command {
   float z;        // Z-axis value
   float speed;    // Speed parameter
   bool toolState; // Tool on/off
+  bool hasJointAngles;
+  float theta1, theta2; // Precomputed joint angles
 
-  Command() : type(MOVE_TO), x(0), y(0), z(0), speed(0), toolState(false) {}
+  Command() : type(MOVE_TO), x(0), y(0), z(0), speed(0), toolState(false), hasJointAngles(false), theta1(0), theta2(0) {}
 
   // General constructor
   Command(Type t, float x, float y, float z = 0.0f, float spd = 0.0f, bool tool = false)

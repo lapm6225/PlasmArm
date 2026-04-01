@@ -283,7 +283,8 @@ void taskWebHandler(void *parameter) {
  * Performs 4D interpolation (X, Y, Z, Tool) and pushes TargetState to
  * motionQueue.
  */
-void taskTrajectoryPlanner(void *parameter) {
+void taskTrajectoryPlanner(void *parameter) 
+{
   Serial.println("Task Planner started on Core 0");
 
   Command cmd;
@@ -303,6 +304,24 @@ void taskTrajectoryPlanner(void *parameter) {
         Serial.printf("Planner: MOVE_TO (%.2f, %.2f) z=%.2f spd=%.1f tool=%s\n",
                       cmd.x, cmd.y, cmd.z, cmd.speed,
                       cmd.toolState ? "ON" : "OFF");
+
+        if (cmd.hasJointAngles) {
+          // Direct joint angle mode: use precomputed theta1/theta2.
+          TargetState point(cmd.x, cmd.y, cmd.z, cmd.toolState);
+          point.hasJointAngles = true;
+          point.theta1 = cmd.theta1;
+          point.theta2 = cmd.theta2;
+
+          if (xQueueSend(motionQueue, &point, portMAX_DELAY) != pdTRUE) {
+            Serial.println("Planner: ERROR - Motion queue send failed!");
+          }
+
+          currentState = target;
+          robotState.currentPosition = target.toPoint2D();
+          robotState.toolZ = target.z;
+          robotState.toolActive = target.toolActive;
+          break;
+        }
 
         // Check if XY target is reachable
         Point2D targetXY = target.toPoint2D();
@@ -331,7 +350,6 @@ void taskTrajectoryPlanner(void *parameter) {
 
           float t = (numPoints > 1) ? (float)i / (numPoints - 1) : 1.0f;
           float z = currentState.z + t * (target.z - currentState.z);
-          // Tool state from the command applies to the ENTIRE path
           bool tool = target.toolActive;
 
           TargetState point(pt.x, pt.y, z, tool);
@@ -457,17 +475,25 @@ void taskMotionControl(void *parameter) {
       // New target point received
       robotState.isMoving = true;
 
-      // Calculate inverse kinematics for XY
+      // Calculate inverse kinematics for XY or use provided joint angles if available
       Point2D targetXY = target.toPoint2D();
-      if (kinematics.inverse(targetXY, targetAngles)) {
-        // Command motors to move to target angles
-        if(dxlCtrl) dxlCtrl->syncWriteAngles(targetAngles.theta1, targetAngles.theta2);
+      if (target.hasJointAngles) {
+        targetAngles.theta1 = target.theta1;
+        targetAngles.theta2 = target.theta2;
+      } else if (kinematics.inverse(targetXY, targetAngles)) {
+        // Good
+      } else {
+        Serial.printf("Motion: IK failed for (%.2f, %.2f)\n", targetXY.x, targetXY.y);
+        continue;
+      }
 
-        robotState.currentAngles = targetAngles;
-        robotState.currentPosition = targetXY;
+      // Command motors to move to target angles
+      if(dxlCtrl) dxlCtrl->syncWriteAngles(targetAngles.theta1, targetAngles.theta2);
 
-        // Actuate Z-axis (placeholder - adapt to your Z hardware)
-        
+      robotState.currentAngles = targetAngles;
+      robotState.currentPosition = targetXY;
+
+      // Actuate Z-axis (placeholder - adapt to your Z hardware)
 
 #if DEBUG_MOTOR
         Serial.printf("Motion: Target (%.2f, %.2f) -> t1=%.2f, t2=%.2f\n",
@@ -509,7 +535,6 @@ void taskMotionControl(void *parameter) {
 
     // Fixed frequency loop
     vTaskDelayUntil(&lastWakeTime, loopDelay);
-  }
 }
 
 // ============================================================================

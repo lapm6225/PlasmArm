@@ -68,6 +68,20 @@ public:
   void begin();
 
   /**
+   * @brief Load a batch of commands from a JSON string and enqueue them.
+   * @param json JSON content (array or object with "commands" array)
+   * @return true if at least one command enqueued successfully
+   */
+  bool loadCommandsFromJson(const String &json);
+
+  /**
+   * @brief Load a JSON command file from SPIFFS, parse and enqueue commands.
+   * @param path SPIFFS path to JSON file, e.g. "/commands.json"
+   * @return true if file read + at least one command enqueued
+   */
+  bool loadCommandsFromSPIFFS(const char *path);
+
+  /**
    * @brief Broadcast robot status to all WebSocket clients
    * @param state Current robot state
    */
