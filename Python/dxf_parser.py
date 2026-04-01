@@ -126,7 +126,12 @@ class DxfParser:
         commands = self._generate_commands(shapes)
 
         # Add inverse kinematics and reachability metadata
-        return self._annotate_kinematics(commands)
+        annotated = self._annotate_kinematics(commands)
+
+        # Split any switch points into before/after command entries
+        annotated = DxfParser.expand_switch_segments(annotated)
+
+        return annotated
 
     def _extract_shapes(self, msp) -> List[List[Tuple[float, float]]]:
         """Extract shapes as lists of (x, y) vertices from DXF entities."""
@@ -436,27 +441,29 @@ class DxfParser:
         expanded = []
         for cmd in commands:
             if cmd.get("type") == "MOVE_TO" and cmd.get("config_switch"):
-                before = {
-                    **cmd,
-                    "arm_config": cmd.get("config_before"),
-                    "theta1": cmd.get("theta1_before", cmd.get("theta1")),
-                    "theta2": cmd.get("theta2_before", cmd.get("theta2")),
-                    "config_switch": False,
-                    "is_switch_point": False,
-                    "segment_part": "before",
-                }
+                # If we switch from a generic AUTO state, no valid 'before' posture exists.
+                if cmd.get("config_before") != "AUTO":
+                    before = {
+                        **cmd,
+                        "arm_config": cmd.get("config_before"),
+                        "theta1": cmd.get("theta1_before", cmd.get("theta1")),
+                        "theta2": cmd.get("theta2_before", cmd.get("theta2")),
+                        "config_switch": False,
+                        "is_switch_point": False,
+                        "segment_part": "before",
+                    }
+                    expanded.append(before)
 
                 after = {
                     **cmd,
                     "arm_config": cmd.get("config_after"),
-                    "theta1": cmd.get("theta1", cmd.get("theta1")),
-                    "theta2": cmd.get("theta2", cmd.get("theta2")),
+                    "theta1": cmd.get("theta1"),
+                    "theta2": cmd.get("theta2"),
                     "config_switch": False,
                     "is_switch_point": True,
                     "segment_part": "after",
                 }
 
-                expanded.append(before)
                 expanded.append(after)
             else:
                 expanded.append(cmd)
