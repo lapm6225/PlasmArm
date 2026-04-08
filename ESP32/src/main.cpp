@@ -33,6 +33,7 @@
 
 #include "hardware/DynamixelController.h"
 #include "web/WebServer.h"
+#include "hardware/SG90.h"
 #include <queue>  // For std::queue in state machine
 
 // Test mode includes
@@ -52,6 +53,7 @@ RobotState robotState;
 DynamixelController* dxlCtrl = nullptr;
 
 WebServer webServer;
+SG90 toolServo;  // Global servo instance
 
 // ============================================================================
 // FreeRTOS Queues
@@ -256,6 +258,12 @@ void taskStateMachine(void* parameter) {
     uint32_t delayStartTime = 0;
     uint32_t delayDuration = 0;
 
+    // --- Tool actuation tracking (non-blocking) ---
+    bool toolMovingDown = false;
+    bool toolMovingUp = false;
+    float toolTargetAngle = 0.0f;
+    uint32_t toolActuateStartTime = 0;
+
     // --- Motion point buffer (internal, not a FreeRTOS queue) ---
     std::queue<TargetState> pointBuffer;
     ArmConfig currentConfig = ArmConfig::RIGHT_ELBOW;
@@ -350,16 +358,34 @@ void taskStateMachine(void* parameter) {
         }
 
         // ====================================================================
-        // 4. STATE: TOOL_ACTUATING — wait for Z motion to complete
+        // 4. STATE: TOOL_ACTUATING — non-blocking servo motion
         // ====================================================================
         if (state == PlannerState::TOOL_ACTUATING) {
-            if (dxlCtrl)
-                dxlCtrl->update();
-            bool motorsMoving = dxlCtrl ? dxlCtrl->isMoving() : false;
-            robotState.isMoving = motorsMoving;
+            bool done = false;
+            if (toolMovingDown) {
+                done = toolServo.stepDown(TOOL_STEP_DEG);
+                uint32_t elapsed = millis() - toolActuateStartTime;
+                if (elapsed > TOOL_ACTUATE_TIMEOUT_MS) {
+                    Serial.println("SM: TOOL_DOWN timeout!");
+                    done = true;
+                }
+            } else if (toolMovingUp) {
+                done = toolServo.stepUp(TOOL_STEP_DEG, toolTargetAngle);
+            }
 
-            if (!motorsMoving) {
+            if (done) {
                 Serial.println("SM: TOOL actuation complete");
+                bool wasDown = toolMovingDown;
+                bool wasUp = toolMovingUp;
+                toolMovingDown = false;
+                toolMovingUp = false;
+                if (wasDown) {
+                    robotState.toolZ = 5.0f;
+                    robotState.toolActive = true;
+                } else if (wasUp) {
+                    robotState.toolZ = 0.0f;
+                    robotState.toolActive = false;
+                }
                 state = PlannerState::IDLE;
                 robotState.plannerState = PlannerState::IDLE;
                 robotState.isMoving = false;
@@ -417,31 +443,30 @@ void taskStateMachine(void* parameter) {
                     }
 
                     // ──────────────────────────────────────────────────────
-                    // TOOL_UP: raise Z, tool OFF
+                    // TOOL_UP: raise Z, tool OFF (non-blocking)
                     // ──────────────────────────────────────────────────────
                     case Command::TOOL_UP: {
                         Serial.println("SM: TOOL_UP (z=0, tool=OFF)");
-                        TargetState safePoint(currentState.x, currentState.y, 0, false);
-                        pointBuffer.push(safePoint);
-                        currentState.z = 0;
-                        currentState.toolActive = false;
-                        state = PlannerState::EXECUTING;
-                        robotState.plannerState = PlannerState::EXECUTING;
+                        toolTargetAngle = 0.0f;
+                        toolMovingDown = false;
+                        toolMovingUp = true;
+                        toolActuateStartTime = millis();
+                        state = PlannerState::TOOL_ACTUATING;
+                        robotState.plannerState = PlannerState::TOOL_ACTUATING;
                         robotState.isMoving = true;
                         break;
                     }
 
-                    // ──────────────────────────────────────────────────────
-                    // TOOL_DOWN: lower Z, tool ON
-                    // ──────────────────────────────────────────────────────
+                        // ──────────────────────────────────────────────────────
+                        // TOOL_DOWN: lower Z, tool ON (non-blocking)
+                        // ──────────────────────────────────────────────────────
                     case Command::TOOL_DOWN: {
                         Serial.println("SM: TOOL_DOWN (z=5, tool=ON)");
-                        TargetState downPoint(currentState.x, currentState.y, 5.0f, true);
-                        pointBuffer.push(downPoint);
-                        currentState.z = 5.0f;
-                        currentState.toolActive = true;
-                        state = PlannerState::EXECUTING;
-                        robotState.plannerState = PlannerState::EXECUTING;
+                        toolMovingDown = true;
+                        toolMovingUp = false;
+                        toolActuateStartTime = millis();
+                        state = PlannerState::TOOL_ACTUATING;
+                        robotState.plannerState = PlannerState::TOOL_ACTUATING;
                         robotState.isMoving = true;
                         break;
                     }

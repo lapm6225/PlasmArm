@@ -26,18 +26,7 @@ void WebServer::init(QueueHandle_t cmdQueue) {
         this->onWebSocketEvent(server, client, type, arg, data, len);
     });
 
-    // HTTP routes
-    server->on("/", HTTP_GET,
-               [this](AsyncWebServerRequest* request) { this->handleRoot(request); });
-
-    server->on("/move", HTTP_GET,
-               [this](AsyncWebServerRequest* request) { this->handleMove(request); });
-
-    server->on("/home", HTTP_GET,
-               [this](AsyncWebServerRequest* request) { this->handleHome(request); });
-
-    server->on("/status", HTTP_GET,
-               [this](AsyncWebServerRequest* request) { this->handleStatus(request); });
+    // HTTP routes removed – WebSocket only
 
     // Add WebSocket handler
     server->addHandler(ws);
@@ -57,49 +46,18 @@ void WebServer::handleRoot(AsyncWebServerRequest* request) {
 }
 
 void WebServer::handleMove(AsyncWebServerRequest* request) {
-    if (request->hasParam("x") && request->hasParam("y")) {
-        float x = request->getParam("x")->value().toFloat();
-        float y = request->getParam("y")->value().toFloat();
-
-        Command cmd(Command::MOVE_TO, x, y);
-
-        if (commandQueue) {
-            if (xQueueSend(commandQueue, &cmd, pdMS_TO_TICKS(100)) == pdTRUE) {
-                request->send(200, "text/plain", "OK");
-            } else {
-                request->send(503, "text/plain", "Command queue full");
-            }
-        } else {
-            request->send(500, "text/plain", "Command queue not initialized");
-        }
-    } else {
-        request->send(400, "text/plain", "Missing parameters");
-    }
+    // HTTP handler removed
+    request->send(404, "text/plain", "Not Found");
 }
 
 void WebServer::handleHome(AsyncWebServerRequest* request) {
-    if (commandQueue) {
-        Command cmd(Command::HOME, 0.0f, 0.0f);
-        if (xQueueSend(commandQueue, &cmd, pdMS_TO_TICKS(100)) == pdTRUE) {
-            request->send(200, "text/plain", "Homing started");
-        } else {
-            request->send(503, "text/plain", "Command queue full");
-        }
-    } else {
-        request->send(500, "text/plain", "Command queue not initialized");
-    }
+    // HTTP handler removed
+    request->send(404, "text/plain", "Not Found");
 }
 
 void WebServer::handleStatus(AsyncWebServerRequest* request) {
-    DynamicJsonDocument doc(512);
-    doc["status"] = "running";
-    if (commandQueue) {
-        doc["cmdFree"] = uxQueueSpacesAvailable(commandQueue);
-    }
-
-    String json;
-    serializeJson(doc, json);
-    request->send(200, "application/json", json);
+    // HTTP handler removed
+    request->send(404, "text/plain", "Not Found");
 }
 // fin partie http
 

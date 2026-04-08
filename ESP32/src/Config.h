@@ -37,7 +37,7 @@
 // in the upper half-plane (y > 0).
 //
 //               (0, R_MAX)            Outer boundary: r = L1+L2 = R_MAX
-//                  |                Inner boundary: r = 
+//                  |                Inner boundary: r =
 //                 / \               Half-plane:     y > 0
 //    (-R_MAX,0)----+---+----(R_MAX,0)   Theta1 range:   0° to 180°
 //               (BASE)
@@ -50,8 +50,8 @@
 // Home position: arm fully extended upward (+Y direction)
 #define HOME_X WORKSPACE_R_MAX
 #define HOME_Y 0.0f
-#define HOME_THETA1 90.0f       // Pointing up
-#define HOME_THETA2 0.0f        // Fully extended
+#define HOME_THETA1 90.0f  // Pointing up
+#define HOME_THETA2 0.0f   // Fully extended
 
 // ============================================================================
 // Motor Configuration
@@ -83,6 +83,10 @@
 // Tool output (relay, plasma torch trigger, etc.)
 #define TOOL_SERVO_PIN 26   // pin pour donner les positions du servo
 #define TOOL_SWITCH_PIN 32  // pin pour lire l'état du switch de pression
+
+// Tool actuation parameters
+#define TOOL_STEP_DEG 1.0f            // degrees per step (non-blocking speed control)
+#define TOOL_ACTUATE_TIMEOUT_MS 5000  // max time for down motion before timeout
 
 // Serial communication with Dynamixels
 #define RXD2 16

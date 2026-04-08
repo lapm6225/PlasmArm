@@ -37,12 +37,9 @@ async def run_test(ip: str):
     # --- G-Code sequence (same as user's example) ---
     commands = [
         {"type": "DELAY", "ms": 500},
-        {"type": "MOVE_TO", "x": 300, "y": 200, "speed": 100},
-        {"type": "DELAY", "ms": 1000},
-        {"type": "MOVE_TO", "x": 200, "y": 200, "speed": 100},
-        {"type": "MOVE_TO", "x": 200, "y": 300, "speed": 100},
-        {"type": "MOVE_TO", "x": 300, "y": 300, "speed": 100},
-
+        {"type": "TOOL", "state": "DOWN"},
+        {"type": "DELAY", "ms": 5000},
+        {"type": "TOOL", "state": "UP"},
         ]
     """
         {"type": "MOVE_TO", "x": 200, "y": 200, "speed": 100},
@@ -71,9 +68,7 @@ async def run_test(ip: str):
     print(f"  Each must complete before the next starts.")
     print(f"  Home calibration (send before this test):")
     print(f'    {{"type": "SET_HOME"}}   -- torque OFF, move arm by hand')
-    print(
-        f'    {{"type": "SAVE_HOME"}}  -- save current position as (0,0), persists to NVS\n'
-    )
+    print(f'    {{"type": "SAVE_HOME"}}  -- save current position as (0,0), persists to NVS\n')
 
     for i, cmd in enumerate(commands):
         cmd_type = cmd["type"]

@@ -35,6 +35,7 @@ private:
                           void* arg, uint8_t* data, size_t len);
 
     // HTTP route handlers
+    // HTTP route handlers removed – WebSocket only
     void handleRoot(AsyncWebServerRequest* request);
     void handleMove(AsyncWebServerRequest* request);
     void handleHome(AsyncWebServerRequest* request);

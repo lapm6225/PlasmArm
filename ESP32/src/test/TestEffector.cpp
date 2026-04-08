@@ -30,16 +30,33 @@ void runEffectorTest() {
             cmd.trim();
             
             if (cmd == "d") {
+                /*
                 Serial.println("Demarrage descente (down)...");
                 effector->down();
                 Serial.print("Descente terminee. Angle actuel: ");
                 Serial.println(effector->getAngle());
+                */
+                while(bool a=!effector->stepDown(TOOL_STEP_DEG)){
+                    Serial.print("global ");
+                    Serial.println(a);
+
+                    Serial.print("switch ");
+                    Serial.println(digitalRead(TOOL_SWITCH_PIN));
+                    delay(10);
+                }
             } 
             else if (cmd == "u") {
+                /*
                 Serial.println("Demarrage montee (up) de 60 degres...");
                 effector->up();
                 Serial.print("Montee terminee. Angle actuel: ");
                 Serial.println(effector->getAngle());
+                */
+                int startAngle=effector->getAngle();
+                while(!effector->stepUp(TOOL_STEP_DEG,175)){
+                    Serial.println(effector->getAngle());
+                    delay(TOOL_STEP_DEG);
+                }
             }
             else if (cmd.startsWith("a")) {
                 int targetAngle = cmd.substring(1).toInt();
@@ -51,7 +68,7 @@ void runEffectorTest() {
                 int state = digitalRead(TOOL_SWITCH_PIN);
                 Serial.print("Etat de la switch: ");
                 Serial.print(state);
-                Serial.println(state == LOW ? " (Appuye / LOW)" : " (Ouverte / HIGH)");
+                Serial.println(state == LOW ? " (Appuye / LOW)" : " (Non appuye / HIGH)");
             }
             else if (cmd.length() > 0) {
                 Serial.println("Commande non reconnue.");
