@@ -36,21 +36,19 @@ async def run_test(ip: str):
 
     # --- G-Code sequence (same as user's example) ---
     commands = [
-    {"type": "TOOL", "state": "UP"},
-    {"type": "DELAY", "ms": 500},
-    {"type": "MOVE_TO", "x": 200, "y": 200, "speed": 100},
-    {"type": "TOOL", "state": "DOWN"},
-    {"type": "DELAY", "ms": 500},
-    {"type": "MOVE_TO", "x": 200, "y": 300, "speed": 100},
-    {"type": "MOVE_TO", "x": 300, "y": 300, "speed": 100},
-    {"type": "TOOL", "state": "UP"},
-    {"type": "DELAY", "ms": 500},
-    {"type": "MOVE_TO", "x": 200, "y": 200, "speed": 100},
-    {"type": "TOOL", "state": "DOWN"},
-    {"type": "DELAY", "ms": 500},
-        
+        {"type": "DELAY", "ms": 500},
+        {"type": "MOVE_TO", "x": 300, "y": 200, "speed": 100},
+        {"type": "DELAY", "ms": 1000},
+        {"type": "MOVE_TO", "x": 200, "y": 200, "speed": 100},
+        {"type": "MOVE_TO", "x": 200, "y": 300, "speed": 100},
+        {"type": "MOVE_TO", "x": 300, "y": 300, "speed": 100},
+
         ]
     """
+        {"type": "MOVE_TO", "x": 200, "y": 200, "speed": 100},
+        {"type": "TOOL", "state": "DOWN"},
+        {"type": "MOVE_TO", "x": 200, "y": 100, "speed": 100},
+
     {"type": "TOOL", "state": "UP"},
     {"type": "DELAY", "ms": 500},
     {"type": "MOVE_TO", "x": 200, "y": 200, "speed": 100},
@@ -90,14 +88,7 @@ async def run_test(ip: str):
         print(f"{C.DIM}--- Step {i + 1}/{len(commands)}: {cmd_type} {desc} ---{C.END}")
         await client.send_command(cmd)
 
-        # Time for the state machine to process each command sequentially
-        if cmd_type == "DELAY":
-            ms = cmd.get("ms", 0)
-            await asyncio.sleep(ms / 1000.0 + 0.5)
-        elif cmd_type == "MOVE_TO":
-            await asyncio.sleep(2.0)  # Wait for move to complete
-        elif cmd_type == "TOOL":
-            await asyncio.sleep(1.0)  # Wait for tool actuation
+        
 
     # Wait for robot to finish
     print(f"\n{C.BOLD}Waiting for robot to idle...{C.END}")
