@@ -148,9 +148,8 @@ void setup() {
     Serial.println("Motors initialized");
 
     // Tool/Z GPIO setup
-    pinMode(TOOL_SWITCH_PIN, INPUT);
-    pinMode(TOOL_SERVO_PIN, OUTPUT);
-    digitalWrite(TOOL_SERVO_PIN, LOW);
+    toolServo = SG90(TOOL_SERVO_PIN, TOOL_SWITCH_PIN, 0);
+    Serial.println("Tool servo initialized");
 
     // Create FreeRTOS queue
     commandQueue = xQueueCreate(COMMAND_QUEUE_SIZE, sizeof(Command));
@@ -361,6 +360,9 @@ void taskStateMachine(void* parameter) {
         // 4. STATE: TOOL_ACTUATING — non-blocking servo motion
         // ====================================================================
         if (state == PlannerState::TOOL_ACTUATING) {
+            Serial.printf("SM: TOOL_ACTUATING loop (down=%d, up=%d, angle=%d, switch=%d)\n",
+                          toolMovingDown, toolMovingUp, toolServo.getAngle(),
+                          digitalRead(TOOL_SWITCH_PIN));
             bool done = false;
             if (toolMovingDown) {
                 done = toolServo.stepDown(TOOL_STEP_DEG);
@@ -447,7 +449,7 @@ void taskStateMachine(void* parameter) {
                     // ──────────────────────────────────────────────────────
                     case Command::TOOL_UP: {
                         Serial.println("SM: TOOL_UP (z=0, tool=OFF)");
-                        toolTargetAngle = 0.0f;
+                        toolTargetAngle = 175.0f;  // Retracted position
                         toolMovingDown = false;
                         toolMovingUp = true;
                         toolActuateStartTime = millis();

@@ -37,9 +37,10 @@ async def run_test(ip: str):
     # --- G-Code sequence (same as user's example) ---
     commands = [
         {"type": "DELAY", "ms": 500},
-        {"type": "TOOL", "state": "DOWN"},
+        {"type": "SET_HOME"},
         {"type": "DELAY", "ms": 5000},
-        {"type": "TOOL", "state": "UP"},
+        {"type": "SAVE_HOME"},
+        
         ]
     """
         {"type": "MOVE_TO", "x": 200, "y": 200, "speed": 100},
@@ -60,7 +61,7 @@ async def run_test(ip: str):
     {"type": "DELAY", "ms": 500},
 
 
-    {"type": "SET_HOME"}
+    {"type": "SET_HOME"},
     """ 
 
     print(f"\n{C.BOLD}Sending {len(commands)} G-code commands...{C.END}")
