@@ -7,23 +7,24 @@ import os
 import check_dxf
 # --- Ajout de ligne dans le "debug" ---
 def add_text(window,text):
-    window.textEdit.append(text)
-    text = window.textEdit.toPlainText()
-    lines = text.split("\n")
-    new_lines = lines[-20:]
-    trimmed_text = "\n".join(new_lines)
-    window.textEdit.setPlainText(trimmed_text)
+    # window.textEdit.append(text)
+    # text = window.textEdit.toPlainText()
+    # lines = text.split("\n")
+    # new_lines = lines[-20:]
+    # trimmed_text = "\n".join(new_lines)
+    # window.textEdit.setPlainText(trimmed_text)
+    print(text)
 
 
 # --- Qui génère un DXF centré ---
 def func_DXF(window, scene):
     doc = ezdxf.new()
     msp = doc.modelspace()
-    origin_bras = QPointF(400, 410)
+    origin_bras = QPointF(500, 450)
     if hasattr(window, "dxf_preview"):
         scene.removeItem(window.dxf_preview)
     window.dxf_preview = scene.createItemGroup([])
-    pen = QPen(Qt.GlobalColor.gray)
+    pen = QPen(Qt.GlobalColor.green)
     pen.setWidth(1)
     if hasattr(window, "dxf_group"):
         for item in window.dxf_group.childItems():
@@ -39,7 +40,7 @@ def func_DXF(window, scene):
                 msp.add_line((p1_robot.x(), -p1_robot.y()), (p2_robot.x(), -p2_robot.y()))
                 x1, y1 = p1_robot.x(), p1_robot.y()
                 x2, y2 = p2_robot.x(), p2_robot.y()
-                line = QGraphicsLineItem(400+x1, 410+y1, 400+x2, 410+y2)
+                line = QGraphicsLineItem(500+x1, 450+y1, 500+x2, 450+y2)
                 line.setPen(pen)
                 line.setZValue(-10)  # derrière
                 line.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, False)
@@ -61,33 +62,61 @@ def func_DXF(window, scene):
 
 
 # --- Ouvertur d'un fichier ---
-def open_file(window,scene):
-    # Si un DXF est déjà chargé, demander confirmation
+def open_file(window, scene):
+
+    # --- Style dark pour les boîtes de dialogue ---
+    dialog_style = """
+        QWidget {
+            background-color: #20242c;
+            color: #e6f1ff;
+        }
+        QLineEdit {
+            background-color: #262b34;
+            color: #e6f1ff;
+            border: 1px solid #2f3540;
+            border-radius: 4px;
+            padding: 4px 6px;
+        }
+        QPushButton {
+            background-color: #262b34;
+            color: #e6f1ff;
+            border: 1px solid #2f3540;
+            border-radius: 4px;
+            padding: 4px 10px;
+        }
+        QPushButton:hover {
+            background-color: #2b303a;
+            border-color: #3a4150;
+        }
+    """
+
+    # --- Si un DXF est déjà chargé ---
     if hasattr(window, "dxf_group"):
-        réponse = QtWidgets.QMessageBox.question(
-            window,
-            "DXF déjà chargé",
-            "Un DXF est déjà chargé. Voulez-vous le remplacer ?",
-            QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No
-        )
+
+        box = QtWidgets.QMessageBox(window)
+        box.setWindowTitle("DXF file already loaded")
+        box.setText("A DXF file is already loaded. Do-you want to replace it ?")
+        box.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Yes |
+                               QtWidgets.QMessageBox.StandardButton.No)
+        box.setStyleSheet(dialog_style)
+
+        réponse = box.exec()
 
         if réponse == QtWidgets.QMessageBox.StandardButton.No:
-            return  # L'utilisateur annule
+            return
 
-        # Fermer le fichier d'abord
         close_file(window, scene)
 
-    # Ouvrir un nouveau fichier
-    filename, _ = QFileDialog.getOpenFileName(
-        None,
-        "Ouvrir un fichier DXF",
-        "",
-        "Fichiers DXF (*.dxf)"
-    )
-    # charger le fichier sélectionné et l'écrire dans le "debug"
-    if filename:
+    # --- Ouvrir un fichier DXF ---
+    dialog = QFileDialog(window)
+    dialog.setWindowTitle("Ouvrir un fichier DXF")
+    dialog.setNameFilter("Fichiers DXF (*.dxf)")
+    dialog.setStyleSheet(dialog_style)
+
+    if dialog.exec():
+        filename = dialog.selectedFiles()[0]
+
         print("Fichier choisi :", filename)
-        #window.textEdit.append(os.path.basename(filename))
         add_text(window, os.path.basename(filename))
         window.dxf_group = load_dxf_into_scene(window, scene, window.graphicsView, filename)
 #-------------------------------------------------------------
