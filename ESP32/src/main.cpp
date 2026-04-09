@@ -267,6 +267,11 @@ void taskStateMachine(void* parameter) {
     std::queue<TargetState> pointBuffer;
     ArmConfig currentConfig = ArmConfig::RIGHT_ELBOW;
 
+    // --- Config switch tracking ---
+    ArmConfig targetConfig = currentConfig;  // Config to switch to
+    bool configSwitchPending = false;        // Trigger config switch
+    TargetState switchTarget;                // Store target for path regeneration
+
     // --- Current position tracking ---
     TargetState currentState(robotState.currentPosition.x, robotState.currentPosition.y,
                              robotState.toolZ, robotState.toolActive);
@@ -320,14 +325,31 @@ void taskStateMachine(void* parameter) {
         // ====================================================================
         if (state == PlannerState::EXECUTING) {
             if (!pointBuffer.empty()) {
-                // Pop next point and send to motors
                 TargetState target = pointBuffer.front();
-                pointBuffer.pop();
 
                 Point2D targetXY = target.toPoint2D();
                 JointAngles targetAngles;
+                ArmConfig usedConfig;
 
-                if (kinematics.inverse(targetXY, targetAngles, currentConfig)) {
+                bool ikSuccess = kinematics.inverse(targetXY, targetAngles, currentConfig, usedConfig);
+
+                if (!ikSuccess) {
+                    Serial.printf("SM: IK failed for (%.2f, %.2f)\n", targetXY.x, targetXY.y);
+                } else if (usedConfig != currentConfig) {
+                    Serial.printf("SM: Config switch needed: %s -> %s at (%.1f, %.1f)\n",
+                                  currentConfig == ArmConfig::RIGHT_ELBOW ? "RIGHT" : "LEFT",
+                                  usedConfig == ArmConfig::RIGHT_ELBOW ? "RIGHT" : "LEFT",
+                                  targetXY.x, targetXY.y);
+
+                    targetConfig = usedConfig;
+                    configSwitchPending = true;
+                    switchTarget = target;
+
+                    state = PlannerState::SWITCHING_CONFIG;
+                    robotState.plannerState = PlannerState::SWITCHING_CONFIG;
+                    robotState.isMoving = true;
+                } else {
+                    pointBuffer.pop();
                     if (dxlCtrl) {
                         dxlCtrl->syncWriteAngles(targetAngles.theta1, targetAngles.theta2);
                     }
@@ -337,8 +359,6 @@ void taskStateMachine(void* parameter) {
                     robotState.toolActive = target.toolActive;
                     robotState.isMoving = true;
                     currentState = target;
-                } else {
-                    Serial.printf("SM: IK failed for (%.2f, %.2f)\n", targetXY.x, targetXY.y);
                 }
             } else {
                 // No more points — check if motors have settled
@@ -395,7 +415,77 @@ void taskStateMachine(void* parameter) {
         }
 
         // ====================================================================
-        // 5. STATE: IDLE — try to receive next command (blocking with timeout)
+        // 5. STATE: SWITCHING_CONFIG — switch arm config at current position
+        // ====================================================================
+        if (state == PlannerState::SWITCHING_CONFIG) {
+            Serial.printf("SM: SWITCHING_CONFIG: %s -> %s\n",
+                          currentConfig == ArmConfig::RIGHT_ELBOW ? "RIGHT" : "LEFT",
+                          targetConfig == ArmConfig::RIGHT_ELBOW ? "RIGHT" : "LEFT");
+
+            ArmConfig newConfig = targetConfig;
+            Point2D targetXY = switchTarget.toPoint2D();
+          
+            if (currentState.toolActive) {
+                Serial.println("SM:   Tool is DOWN - raising before config switch");
+
+                toolTargetAngle = 175.0f;
+                toolMovingDown = false;
+                toolMovingUp = true;
+                toolActuateStartTime = millis();
+
+                while (!toolMovingUp || toolServo.getAngle() < 175) {
+                    if (toolMovingUp) {
+                        bool done = toolServo.stepUp(TOOL_STEP_DEG, toolTargetAngle);
+                        if (done) {
+                            toolMovingUp = false;
+                            Serial.println("SM:   Tool raised");
+                        }
+                    }
+                    vTaskDelay(pdMS_TO_TICKS(20));
+                }
+
+                robotState.toolZ = 0.0f;
+                robotState.toolActive = false;
+                currentState.z = 0.0f;
+                currentState.toolActive = false;
+            }
+
+            JointAngles switchAngles;
+            if (kinematics.inverse(targetXY, switchAngles, newConfig)) {
+                Serial.printf("SM:   Moving to (%.1f, %.1f) with new config\n", targetXY.x,
+                              targetXY.y);
+
+                if (dxlCtrl) {
+                    dxlCtrl->syncWriteAngles(switchAngles.theta1, switchAngles.theta2);
+                }
+
+                while (dxlCtrl && dxlCtrl->isMoving()) {
+                    dxlCtrl->update();
+                    vTaskDelay(pdMS_TO_TICKS(10));
+                }
+
+                currentConfig = newConfig;
+                configSwitchPending = false;
+
+                Serial.printf("SM:   Config switched to %s, resuming execution\n",
+                              currentConfig == ArmConfig::RIGHT_ELBOW ? "RIGHT" : "LEFT");
+
+                state = PlannerState::EXECUTING;
+                robotState.plannerState = PlannerState::EXECUTING;
+
+                currentState = switchTarget;
+                Serial.printf("SM:   -> Config switched, remaining %d points in buffer\n",
+                              (int)pointBuffer.size());
+            } else {
+                Serial.printf("SM: ERROR - target not reachable with new config!\n");
+                state = PlannerState::IDLE;
+                robotState.plannerState = PlannerState::IDLE;
+                configSwitchPending = false;
+            }
+        }
+
+        // ====================================================================
+        // 6. STATE: IDLE — try to receive next command (blocking with timeout)
         // ====================================================================
         if (state == PlannerState::IDLE) {
             Command cmd;
@@ -459,9 +549,9 @@ void taskStateMachine(void* parameter) {
                         break;
                     }
 
-                        // ──────────────────────────────────────────────────────
-                        // TOOL_DOWN: lower Z, tool ON (non-blocking)
-                        // ──────────────────────────────────────────────────────
+                    // ──────────────────────────────────────────────────────
+                    // TOOL_DOWN: lower Z, tool ON (non-blocking)
+                    // ──────────────────────────────────────────────────────
                     case Command::TOOL_DOWN: {
                         Serial.println("SM: TOOL_DOWN (z=5, tool=ON)");
                         toolMovingDown = true;
@@ -638,6 +728,9 @@ void taskStateMachine(void* parameter) {
                     break;
                 case PlannerState::DELAYING:
                     stateStr = "WAIT";
+                    break;
+                case PlannerState::SWITCHING_CONFIG:
+                    stateStr = "SWCH";
                     break;
             }
 

@@ -26,10 +26,11 @@ enum class ArmConfig {
  * @brief G-code style planner state machine
  */
 enum class PlannerState {
-    IDLE,            // Waiting for next command
-    EXECUTING,       // Processing interpolated points at 100Hz
-    TOOL_ACTUATING,  // Waiting for tool Z motion to complete
-    DELAYING         // Waiting for millis()-based delay to elapse
+    IDLE,             // Waiting for next command
+    EXECUTING,        // Processing interpolated points at 100Hz
+    TOOL_ACTUATING,   // Waiting for tool Z motion to complete
+    DELAYING,         // Waiting for millis()-based delay to elapse
+    SWITCHING_CONFIG  // Transitioning to new arm config
 };
 
 // 2D Cartesian point

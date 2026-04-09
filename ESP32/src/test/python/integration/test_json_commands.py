@@ -34,24 +34,43 @@ async def run_test(ip: str):
         print(f"{C.RED}Connection failed: {e}{C.END}")
         return
 
-    # --- G-Code sequence (same as user's example) ---
+    # Test squence
+    
+    
     commands = [
-        {"type": "DELAY", "ms": 500},
-        {"type": "SET_HOME"},
-        {"type": "DELAY", "ms": 5000},
-        {"type": "SAVE_HOME"},
-        
-        ]
-    """
-        {"type": "MOVE_TO", "x": 200, "y": 200, "speed": 100},
-        {"type": "TOOL", "state": "DOWN"},
-        {"type": "MOVE_TO", "x": 200, "y": 100, "speed": 100},
-
+    {"type": "DELAY", "ms": 500},
+    {"type": "TOOL", "state": "UP"},
+    {"type": "MOVE_TO", "x": 200, "y": 200, "speed": 100},
+    {"type": "TOOL", "state": "DOWN"},
+    {"type": "MOVE_TO", "x": 200, "y": 300, "speed": 100},
+    {"type": "MOVE_TO", "x": 300, "y": 300, "speed": 100},
     {"type": "TOOL", "state": "UP"},
     {"type": "DELAY", "ms": 500},
     {"type": "MOVE_TO", "x": 200, "y": 200, "speed": 100},
     {"type": "TOOL", "state": "DOWN"},
     {"type": "DELAY", "ms": 500},
+    {"type": "TOOL", "state": "UP"},
+    {"type": "DELAY", "ms": 500},
+    ]
+    """
+    """   
+    """  
+    # Setting and saving home
+    commands=[
+        {"type": "DELAY", "ms": 500},
+        {"type": "SET_HOME"},
+        {"type": "DELAY", "ms": 5000},
+        {"type": "SAVE_HOME"},
+    ] 
+     
+        {"type": "MOVE_TO", "x": 200, "y": 200, "speed": 100},
+        {"type": "TOOL", "state": "DOWN"},
+        {"type": "MOVE_TO", "x": 200, "y": 100, "speed": 100},
+
+    {"type": "DELAY", "ms": 500},
+    {"type": "TOOL", "state": "UP"},
+    {"type": "MOVE_TO", "x": 200, "y": 200, "speed": 100},
+    {"type": "TOOL", "state": "DOWN"},
     {"type": "MOVE_TO", "x": 200, "y": 300, "speed": 100},
     {"type": "MOVE_TO", "x": 300, "y": 300, "speed": 100},
     {"type": "TOOL", "state": "UP"},
