@@ -1,19 +1,22 @@
 from PyQt6 import QtWidgets, uic
-from PyQt6.QtWidgets import QGraphicsScene, QGraphicsRectItem, QLineEdit, QGraphicsPixmapItem
-from PyQt6.QtCore import  QRectF
+from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QPushButton, QGraphicsScene, QLineEdit, QGraphicsPixmapItem
 from PyQt6.QtGui import QPixmap
+from PyQt6.QtCore import  Qt, QObject, QEvent, Qt, QTimer
+from collections import namedtuple
+
 import sys
 import math
-from collections import namedtuple
+
+
+# Other files to import
 import dxf
 import animation
 from dxf_parser import DxfParser
 import communication as comm
 
+# ressources.qrc to compile  with pyrcc6
+import ressources_rc
 
-
-
-# --- Variables Globales ---
 class Position:
     def __init__(self, x, y):
         self.x = x
@@ -27,13 +30,13 @@ tool_raised = True # true == levé / false == baissé
 
 # --- Données de dimension des bras --- 
 Arm = namedtuple("Arm", ["length", "width"])
-bicep = Arm(150, 20)
-forearm = Arm(167.6, 20)
+bicep = Arm(222, 35)
+forearm = Arm(216, 54)
 
 # --- Données de position ---
 Point = namedtuple("Position", ["x", "y"])
 tool_pos = Position(forearm.length+bicep.length, 0) 
-origin = Point(450, 400)
+origin = Point(550, 450)
 
 # --- Vérification des limites du bras ---
 def limit(shoulder, elbow):
@@ -51,7 +54,7 @@ def limit(shoulder, elbow):
     y = bicep.length*math.sin(shoulder*math.pi/180)+forearm.length*math.sin((shoulder+elbow)*math.pi/180)
 
     # Distance max
-    if math.sqrt(pow(x,2)+pow(y,2))>bicep.length+forearm.length:
+    if math.sqrt(pow(x,2)+pow(y,2))>bicep.length+forearm.length+0.1:
         dxf.add_text(window, "Out of bounds")
         return False
     
@@ -70,16 +73,68 @@ def limit(shoulder, elbow):
         dxf.add_text(window, text )
         return True
 
+class HelpDialog(QDialog):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Aide")
+        self.setMinimumWidth(400)
+
+        self.setStyleSheet("""
+            QDialog {
+                background-color: #111;
+                color: #eee;
+            }
+            QLabel {
+                color: #eee;
+            }
+            QPushButton {
+                background-color: #333;
+                color: #eee;
+                border: 1px solid #555;
+                padding: 6px;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #444;
+            }
+        """)
+
+        layout = QVBoxLayout()
+
+        help_text = """
+        <h2>Aide de l'application</h2>
+        <p>Voici quelques informations utiles :</p>
+        <ul>
+            <li>Utilisez le menu <b>Fichier</b> pour ouvrir ou sauvegarder.</li>
+            <li>Le bouton <b>Exécuter</b> lance le traitement.</li>
+            <li>Consultez la documentation pour plus de détails.</li>
+        </ul>
+        """
+
+        label = QLabel(help_text)
+        label.setWordWrap(True)
+
+        close_btn = QPushButton("Fermer")
+        close_btn.clicked.connect(self.close)
+
+        layout.addWidget(label)
+        layout.addWidget(close_btn)
+        self.setLayout(layout)
+
+
+def open_help():
+    dlg = HelpDialog()
+    dlg.exec()   # PyQt6 : exec() et non exec_()
 
 # --- Changer les vitesse en mode manuel ---
 def change_angular_speed():
     global angular_speed
-    text = window.edit_angular_speed.text() # lecture du texte
+    text = window.angSpeedEdit.text() # lecture du texte
     angular_speed = float(text) if text else 1
 
 def change_linear_speed():
     global linear_speed
-    text = window.edit_linear_speed.text() # lecture du texte
+    text = window.linSpeedEdit.text() # lecture du texte
     linear_speed = float(text) if text else 1
 # -------------------------------------------
 
@@ -230,54 +285,94 @@ def func_stop():
     dxf.add_text(window, "Arrêt de la découpe")
 # -------------
 
-##########################
-# MAIN
-##########################
-if __name__ == '__main__':
-    # initialisation de l'appli
-    client = comm.RobotWSClient()
+
+
+
+
+
+
+class AutoFitView(QObject):
+    def __init__(self, window, view, scene):
+        super().__init__()
+        self.window = window
+        self.view = view
+        self.scene = scene
+        self.defer = False
+
+        QTimer.singleShot(0, self.refit)
+
+    def schedule_refit(self):
+        # On ne bloque jamais les resize
+        if not self.defer:
+            self.defer = True
+            QTimer.singleShot(0, self._do_refit)
+
+    def _do_refit(self):
+        self.defer = False
+        self.refit()
+
+    def refit(self):
+        rect = self.scene.itemsBoundingRect()
+        rect = rect.adjusted(-40, -40, 40, 40)
+        if not rect.isNull():
+            self.view.fitInView(rect, Qt.AspectRatioMode.KeepAspectRatio)
+
+    def eventFilter(self, obj, event):
+        # Resize → refit immédiat (toujours)
+        if obj is self.view and event.type() == QEvent.Type.Resize:
+            self.refit()
+
+        # Maximiser / Restaurer → refit différé
+        if obj is self.window and event.type() == QEvent.Type.WindowStateChange:
+            QTimer.singleShot(0, self.refit)
+
+        return False
+
+
+
+def toggle_connection():
+    connection_panel.setHidden(not connection_panel.isHidden())
+    auto_fit.schedule_refit()
+
+
+def toggle_control():
+    control_panel.setHidden(not control_panel.isHidden())
+    auto_fit.schedule_refit()
+
+
+
+class TitleBarDrag(QObject):
+    def __init__(self, window, header):
+        super().__init__()
+        self.window = window
+        self.header = header
+
+        header.installEventFilter(self)
+        for child in header.findChildren(QObject):
+            child.installEventFilter(self)
+
+    def eventFilter(self, obj, event):
+        # Drag depuis header ou ses enfants
+        if obj is self.header or obj.parent() is self.header:
+
+            # Début du drag
+            if event.type() == QEvent.Type.MouseButtonPress:
+                if event.button() == Qt.MouseButton.LeftButton:
+                    if self.window.windowHandle():
+                        self.window.windowHandle().startSystemMove()
+                return True
+
+        return False
+
+if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
+
     window = QtWidgets.QMainWindow()
-    uic.loadUi('plasmarm.ui', window)
-    
-    # initialisation des éléments de l'interface
-    window.graphicsView.setDragMode(QtWidgets.QGraphicsView.DragMode.NoDrag)
-    window.progressBar.setValue(0)
-
-    # Connection aux éléments graphiques ---
-    # --- Boutons principaux
-    window.Button_DXF.clicked.connect(func_DXF)
-    window.Button_Home.clicked.connect(go_home)
-    window.Button_Print.clicked.connect(func_print)
-    window.Button_Stop.clicked.connect(func_stop)
-
-    # --- Boutons Rotation ---
-    window.Shoulder_Horaire.clicked.connect(shoulder_clockwise)
-    window.Shoulder_Antihoraire.clicked.connect(shoulder_counterclockwise)
-    window.Elbow_clockwise.clicked.connect(elbow_clockwise)
-    window.Elbow_counterclockwise.clicked.connect(elbow_counterclockwise)
-
-    # --- Boutons linéaire ---
-    window.button_forward.clicked.connect(move_forward)
-    window.button_backward.clicked.connect(move_backward)
-    window.button_right.clicked.connect(move_right)
-    window.button_left.clicked.connect(move_left)
-
-    # --- Boutons Effecteur ---
-    window.button_rise.clicked.connect(tool_up)
-    window.button_descent.clicked.connect(tool_down)
-
-    # --- Boutons Fichier ---
-    window.actionLoad.triggered.connect(open_file)
-    window.actionFermer.triggered.connect(close_file)
-
-    # --- LineEdit pour vitesse ---
-    window.edit_angular_speed.textChanged.connect(change_angular_speed)
-    window.edit_linear_speed.textChanged.connect(change_linear_speed)
-    # --- forcer l'entrée des lineEdit 
-    enforce_float_only(window.edit_angular_speed)
-    enforce_float_only(window.edit_linear_speed)
-    
+    uic.loadUi('plasmarm_v2.ui', window)
+    window.setWindowFlags(
+    Qt.WindowType.FramelessWindowHint |
+    Qt.WindowType.Window
+)
     # Génération de la scène pour l'affichage--- 
     scene = QGraphicsScene()
     shoulder_img = QPixmap("bras1.png")      # image du segment 1
@@ -287,10 +382,81 @@ if __name__ == '__main__':
     animator = animation.AngleAnimator(shoulder)
     animator_elbow = animation.AngleAnimator(elbow)
     animation.generate_scene(window, scene, bicep, forearm, origin, elbow, shoulder)
-   
-    # Démarer l'application
+
+    auto_fit = AutoFitView(window, window.graphicsView, scene)
+    window.graphicsView.installEventFilter(auto_fit)
+    window.installEventFilter(auto_fit)
+
+    # Connection Panel Open and Close
+    connection_panel = window.ConnectionPanel
+    connection_panel.setHidden(True)
+    connection_panel.setMinimumWidth(connection_panel.width())
+    window.connectPanelBtn.clicked.connect(toggle_connection)
+
+    # Control Panel Open and Close
+    control_panel = window.ControlContainer
+    control_panel.setHidden(True)
+    #control_panel.setMinimumHeight(connection_panel.width())
+    window.jogBtn.clicked.connect(toggle_control)
+
+    window.helpBtn.clicked.connect(open_help)
+
+
+
+    client = comm.RobotWSClient()
+    
+    # initialisation des éléments de l'interface
+    window.graphicsView.setDragMode(QtWidgets.QGraphicsView.DragMode.NoDrag)
+    window.progressBar.setValue(0)
+
+    # Connection aux éléments graphiques ---
+    # --- Boutons principaux
+    window.dxfBtn.clicked.connect(func_DXF)
+    window.homeBtn.clicked.connect(go_home)
+    window.startBtn.clicked.connect(func_print)
+    window.pauseBtn.clicked.connect(func_stop)
+
+    # --- Boutons Rotation ---
+    window.A1cBtn.clicked.connect(shoulder_clockwise)
+    window.A1ccBtn.clicked.connect(shoulder_counterclockwise)
+    window.A2cBtn.clicked.connect(elbow_clockwise)
+    window.A2ccBtn.clicked.connect(elbow_counterclockwise)
+
+    # --- Boutons linéaire ---
+    window.upBtn.clicked.connect(move_forward)
+    window.downBtn.clicked.connect(move_backward)
+    window.rightBtn.clicked.connect(move_right)
+    window.leftBtn.clicked.connect(move_left)
+
+    # --- Boutons Effecteur ---
+    window.toolUpBtn.clicked.connect(tool_up)
+    window.toolDownBtn.clicked.connect(tool_down)
+
+    # --- Boutons Fichier ---
+    window.downloadBtn.clicked.connect(open_file)
+    window.deleteBtn.clicked.connect(close_file)
+
+    # --- LineEdit pour vitesse ---
+    window.angSpeedEdit.textChanged.connect(change_angular_speed)
+    window.linSpeedEdit.textChanged.connect(change_linear_speed)
+    # --- forcer l'entrée des lineEdit 
+    enforce_float_only(window.angSpeedEdit)
+    enforce_float_only(window.linSpeedEdit)
+    
+    
+    window.closeBtn.clicked.connect(window.close)
+    window.minBtn.clicked.connect(window.showMinimized)
+
+    def toggle_maximize():
+        if window.isMaximized():
+            window.showNormal()
+        else:
+            window.showMaximized()
+
+    window.maxBtn.clicked.connect(toggle_maximize)
+    titlebar_drag = TitleBarDrag(window, window.headerContainer)
+
+
+
     window.show()
     sys.exit(app.exec())
-
-
-   
