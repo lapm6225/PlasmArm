@@ -65,7 +65,6 @@ PlasmArm emerged from the need for space-saving solutions in small machining wor
 
 **Hardware**:
 - Manufacture a rigid 3-axis arm (X, Y plane with 2 joints + Z axis for tool)
-- 4th axis (wrist rotation) intentionally omitted - plasma cutting is omnidirectional
 
 **Software**:
 - Develop Python/C++ user interface
@@ -105,7 +104,7 @@ Agile methodology with incremental feature delivery throughout the project.
 ### Electronics
 
 - Level shifter (5V to 3.3V)
-- Custom PCB ( размещен в base)
+- Custom PCB (fit in the base)
 - Limit switch (normally open) for Z-axis contact detection
 - 10kΩ pull-up resistor for limit switch
 - Diode (1N4148 or similar) for half-duplex UART
@@ -344,12 +343,6 @@ pio run
 pio run -t upload
 ```
 
-### Upload Filesystem (for web assets)
-
-```bash
-pio run -t uploadfs
-```
-
 ### Open Serial Monitor
 
 ```bash
@@ -567,13 +560,13 @@ See [ESP32/TEST_README.md](ESP32/TEST_README.md) for detailed testing instructio
 
 ## Licenses
 
-### Software (GPLv3)
+### Software
 
 The Python code (DXF interpreter, GUI) and C++ firmware (ESP32) are distributed under the **GNU General Public License v3.0**.
 
 This choice is primarily driven by the use of PyQt6, whose strong Copyleft license requires any project integrating it to adopt equivalent distribution conditions. GPLv3 ensures that future improvements by the community remain free and accessible to all.
 
-### Hardware (CERN-OHL-W)
+### Hardware
 
 3D printed models, CAD plans, and electrical schematics are distributed under the **CERN Open Hardware Licence - Weak (CERN-OHL-W)**.
 
@@ -659,23 +652,3 @@ PlasmArm/
 │
 └── README.md                  # This file
 ```
-
----
-
-## Acknowledgments
-
-Based on similar projects from Université de Sherbrooke (UdeS):
-- [GRO400H25-marcus](https://github.com/UdeS-GRO/GRO400H25-marcus)
-- [S4H2023-POLUS](https://github.com/UdeS-GRO/S4H2023-POLUS)
-
----
-
-## Contributing
-
-This project is distributed under open source licenses. Contributions are welcome!
-
-1. Fork the repository
-2. Create a feature branch
-3. Submit a pull request
-
-For major changes, please open an issue first to discuss what you would like to change.
