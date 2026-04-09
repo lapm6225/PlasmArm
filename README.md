@@ -2,7 +2,7 @@
 
 A 3-DOF (X, Y, Z) SCARA robotic arm controlled by an ESP32 with real-time WebSocket interface. Designed for compact plasma cutting applications in small workshops.
 
-![PlasmArm Robot](path/to/robot_image.jpg)
+![PlasmArm Robot](Mechanic/Mise%20en%20plan%20assemblage%20complet%20explosé.png)
 
 ## Table of Contents
 
@@ -30,7 +30,6 @@ A 3-DOF (X, Y, Z) SCARA robotic arm controlled by an ESP32 with real-time WebSoc
 - [Licenses](#licenses)
 - [Troubleshooting](#troubleshooting)
 - [Project Structure](#project-structure)
-- [Acknowledgments](#acknowledgments)
 
 ---
 
@@ -60,19 +59,6 @@ This is a **proof-of-concept** version at reduced scale where the plasma torch a
 ### Motivation
 
 PlasmArm emerged from the need for space-saving solutions in small machining workshops. Traditional CNC plasma tables require significant floor space. This project proposes a compact alternative - a wall or floor-mounted SCARA robot that folds when inactive to free up workspace.
-
-### Objectives
-
-**Hardware**:
-- Manufacture a rigid 3-axis arm (X, Y plane with 2 joints + Z axis for tool)
-
-**Software**:
-- Develop Python/C++ user interface
-- Implement inverse kinematics
-- Parse DXF vector drawings imported by user
-
-**Electrical**:
-- Select reliable components for communication between modules
 
 ### Development Method
 
@@ -116,7 +102,7 @@ Agile methodology with incremental feature delivery throughout the project.
 [TO BE ADDED: Assembly instructions with images]
 
 ### 3D Printed Parts
-
+![PlasmArm Robot](Mechanic/Mise%20en%20plan%20assemblage%20complet%20explosé.png)
 [TO BE ADDED: List of STL files and print settings]
 
 <!--
@@ -178,7 +164,7 @@ Print all STL files from the `STL/` folder with recommended settings:
 
 ### Wiring Diagram
 
-[TO BE ADDED: Electrical schematic]
+![Wiring](Electric/Shéma_éléctrique.png)
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -198,10 +184,10 @@ Print all STL files from the `STL/` folder with recommended settings:
          │        │    │(Z-axis) │    │  (daisy  │
          │GPIO 26 │───▶│  PWM    │    │  chain)  │
          │GPIO 32 │◀───│ Limit   │    │          │
-         │        │    │ Switch  │    │          │
+         │        │     │ Switch  │    │          │
          │GPIO 16 │◀───┤         │    │          │
          │GPIO 17 │───▶│         │────│          │
-         └────────┘    └─────────┘    └──────────┘
+         └────────┘     └─────────┘    └──────────┘
               ▲              ▲
               │    ┌─────────┤
               │    │ Level   │
@@ -396,15 +382,15 @@ The system is divided into three interconnected modules:
 ┌─────────────────────────────────────────────────────────────────┐
 │                    PlasmArm Architecture                        │
 ├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
+│                                                                 │
 │  ┌─────────────────────┐    ┌─────────────────────────────┐   │
-│  │  User Interface     │    │   Embedded Control Unit      │   │
-│  │  (PC - Python)      │    │   (ESP32)                    │   │
-│  │                     │    │                               │   │
-│  │  - DXF Import      │───▶│  - JSON Reception            │   │
-│  │  - Trajectory Plan │    │  - Inverse Kinematics        │   │
-│  │  - Jog Controls    │    │  - Command Execution         │   │
-│  │  - JSON Export     │    │  - Motor Communication       │   │
+│  │  User Interface     │    │   Embedded Control Unit     │   │
+│  │  (PC - Python)      │    │   (ESP32)                   │   │
+│  │                     │    │                             │   │
+│  │  - DXF Import       │───▶│  - JSON Reception          │   │
+│  │  - Trajectory Plan  │    │  - Inverse Kinematics       │   │
+│  │  - Jog Controls     │    │  - Command Execution        │   │
+│  │  - JSON Export      │    │  - Motor Communication      │   │
 │  └─────────────────────┘    └──────────────┬──────────────┘   │
 │                                           │                    │
 │                    Wi-Fi (WebSocket)      │                    │
@@ -415,7 +401,7 @@ The system is divided into three interconnected modules:
 │  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────┐    │  │
 │  │  │ Dynamixel   │  │ Dynamixel   │  │ SG90 + Rack     │    │  │
 │  │  │ (Shoulder)  │──│ (Elbow)     │  │ (Z-axis)        │    │  │
-│  │  │  ID: 1     │  │  ID: 2     │  │                 │    │  │
+│  │  │  ID: 1      │  │  ID: 2      │  │                 │    │  │
 │  │  └─────────────┘  └─────────────┘  └────────┬────────┘    │  │
 │  │                                           │             │  │
 │  │                                    ┌──────┴──────┐      │  │
