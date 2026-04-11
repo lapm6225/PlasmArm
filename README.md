@@ -355,15 +355,8 @@ If using Station mode:
 - Robot will connect to your specified WiFi network
 - Check serial monitor for IP address
 
-### 3. Access Web Interface
 
-Open a browser and navigate to:
-```
-http://192.168.4.1  (AP mode)
-http://<IP_ADDRESS> (Station mode)
-```
-
-### 4. Send Commands
+### 3. Send Commands
 
 Use the web interface or Python GUI to:
 - Move the arm to specific coordinates (jog control)
@@ -383,8 +376,8 @@ The system is divided into three interconnected modules:
 │                    PlasmArm Architecture                        │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│  ┌─────────────────────┐    ┌─────────────────────────────┐   │
-│  │  User Interface     │    │   Embedded Control Unit     │   │
+│  ┌─────────────────────┐    ┌─────────────────────────────┐     │
+│  │  User Interface     │    │   Embedded Control Unit     │    │
 │  │  (PC - Python)      │    │   (ESP32)                   │   │
 │  │                     │    │                             │   │
 │  │  - DXF Import       │───▶│  - JSON Reception          │   │
@@ -396,20 +389,20 @@ The system is divided into three interconnected modules:
 │                    Wi-Fi (WebSocket)      │                    │
 │                                           ▼                    │
 │  ┌──────────────────────────────────────────────────────────┐  │
-│  │                    SCARA Arm (Mechanical)                  │  │
-│  │                                                            │  │
-│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────┐    │  │
-│  │  │ Dynamixel   │  │ Dynamixel   │  │ SG90 + Rack     │    │  │
-│  │  │ (Shoulder)  │──│ (Elbow)     │  │ (Z-axis)        │    │  │
-│  │  │  ID: 1      │  │  ID: 2      │  │                 │    │  │
-│  │  └─────────────┘  └─────────────┘  └────────┬────────┘    │  │
-│  │                                           │             │  │
-│  │                                    ┌──────┴──────┐      │  │
-│  │                                    │ Limit Switch│      │  │
-│  │                                    │ (Contact)   │      │  │
-│  │                                    └─────────────┘      │  │
+│  │                    SCARA Arm (Mechanical)                │  │
+│  │                                                          │  │
+│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────┐   │  │
+│  │  │ Dynamixel   │  │ Dynamixel   │  │ SG90 + Rack     │   │  │
+│  │  │ (Shoulder)  │──│ (Elbow)     │  │ (Z-axis)        │   │  │
+│  │  │  ID: 1      │  │  ID: 2      │  │                 │   │  │
+│  │  └─────────────┘  └─────────────┘  └────────┬────────┘   │  │
+│  │                                             │            │  │
+│  │                                      ┌──────┴──────┐     │  │
+│  │                                      │ Limit Switch│     │  │
+│  │                                      │ (Contact)   │     │  │
+│  │                                      └─────────────┘     │  │
 │  └──────────────────────────────────────────────────────────┘  │
-│                                                                  │
+│                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -509,17 +502,18 @@ The embedded web interface provides:
 
 ```json
 // Move to position
-{"cmd": "move", "x": 300, "y": 100, "speed": 50}
+{"type": "MOVE_TO", "x": 200, "y": 200, "speed": 100}
 
-// Draw path (multiple points)
-{"cmd": "draw", "points": [[x,y], [x,y], ...], "tool": "down"}
+// Delay 
+{"type": "DELAY", "ms": 500}
 
 // Tool control
-{"cmd": "tool", "action": "down"}
-{"cmd": "tool", "action": "up"}
+{"type": "TOOL", "state": "DOWN"}
+{"type": "TOOL", "state": "UP"}
 
-// Home position
-{"cmd": "home"}
+// Set home position
+{"type": "SET_HOME"}
+{"type": "SAVE_HOME"}
 ```
 
 ---
@@ -556,22 +550,9 @@ This choice is primarily driven by the use of PyQt6, whose strong Copyleft licen
 
 3D printed models, CAD plans, and electrical schematics are distributed under the **CERN Open Hardware Licence - Weak (CERN-OHL-W)**.
 
-The "Weak" version ensures:
-- Any direct modifications to the SCARA arm's mechanical design must be shared publicly
-- An integrator can use this robot in a larger industrial system without being forced to open plans for their entire infrastructure
-
-### Goal
-
-These license choices maximize impact by ensuring that the innovation at the heart of PlasmArm remains a common good, fostering technological collaboration while protecting accessibility.
-
 ---
 
 ## Troubleshooting
-
-### ESP32 Won't Boot
-
-- **Cause**: GPIO12 held HIGH during boot (if using stepper motors)
-- **Solution**: With Dynamixel servos, this is not an issue
 
 ### Motors Not Moving
 
@@ -584,7 +565,6 @@ These license choices maximize impact by ensuring that the innovation at the hea
 
 - Verify WiFi connection
 - Check serial monitor for IP address
-- Ensure `pio run -t uploadfs` was run
 
 ### Robot Not Reaching Target
 
@@ -617,8 +597,6 @@ PlasmArm/
 │   │   ├── web/
 │   │   │   └── WebServer.cpp  # WebSocket handler
 │   │   └── test/              # Unit tests
-│   ├── data/
-│   │   └── index.html         # Web interface
 │   ├── platformio.ini         # PlatformIO config
 │   └── AGENTS.md              # Development notes
 │
