@@ -84,6 +84,8 @@ void DynamixelController::syncWriteAngles(float theta1_mech, float theta2_mech) 
 
     moving1 = true;
     moving2 = true;
+    stallCount1 = 0;
+    stallCount2 = 0;
 }
 
 float DynamixelController::getAngle(uint8_t id) {
@@ -240,7 +242,20 @@ void DynamixelController::update() {
             if (raw1 >= 0.0f) {
                 float pos1 = normalize(raw1);
                 float diff1 = fabs(wrapAngle180(pos1 - target1_internal));
-                if (diff1 < POSITION_TOLERANCE) moving1 = false;
+                
+                if (fabs(wrapAngle180(pos1 - lastPos1)) < 0.15f) {
+                    stallCount1++;
+                } else {
+                    stallCount1 = 0;
+                }
+                lastPos1 = pos1;
+
+                if (diff1 < POSITION_TOLERANCE || stallCount1 >= 4) {
+                    moving1 = false;
+                    if (stallCount1 >= 4 && diff1 >= POSITION_TOLERANCE) {
+                        Serial.printf("DXL: M1 stalled at diff=%.2f\n", diff1);
+                    }
+                }
             }
         }
         if (moving2) {
@@ -248,7 +263,20 @@ void DynamixelController::update() {
             if (raw2 >= 0.0f) {
                 float pos2 = normalize(raw2);
                 float diff2 = fabs(wrapAngle180(pos2 - target2_internal));
-                if (diff2 < POSITION_TOLERANCE) moving2 = false;
+                
+                if (fabs(wrapAngle180(pos2 - lastPos2)) < 0.15f) {
+                    stallCount2++;
+                } else {
+                    stallCount2 = 0;
+                }
+                lastPos2 = pos2;
+
+                if (diff2 < POSITION_TOLERANCE || stallCount2 >= 4) {
+                    moving2 = false;
+                    if (stallCount2 >= 4 && diff2 >= POSITION_TOLERANCE) {
+                        Serial.printf("DXL: M2 stalled at diff=%.2f\n", diff2);
+                    }
+                }
             }
         }
     }

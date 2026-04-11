@@ -265,16 +265,17 @@ void taskStateMachine(void* parameter) {
 
     // --- Motion point buffer (internal, not a FreeRTOS queue) ---
     std::queue<TargetState> pointBuffer;
+    std::queue<TargetState> transitBuffer; // For JOINT mode safe transit paths
     ArmConfig currentConfig = ArmConfig::RIGHT_ELBOW;
 
     // --- Config switch tracking ---
     ArmConfig targetConfig = currentConfig;  // Config to switch to
     bool configSwitchPending = false;        // Trigger config switch
     TargetState switchTarget;                // Store target for path regeneration
+    bool restoreToolAfterSwitch = false;
 
-    // --- Current position tracking ---
-    TargetState currentState(robotState.currentPosition.x, robotState.currentPosition.y,
-                             robotState.toolZ, robotState.toolActive);
+    // --- Current position tracking (XY only — tool state lives in servo/robotState) ---
+    TargetState currentState(robotState.currentPosition.x, robotState.currentPosition.y);
 
     // --- Serial logging ---
     static unsigned long lastStatusLog = 0;
@@ -291,15 +292,15 @@ void taskStateMachine(void* parameter) {
             robotState.isMoving = false;
             robotState.toolActive = false;
             robotState.toolZ = 0;
-            currentState.toolActive = false;
-            currentState.z = 0;
 
             // Clear pending commands
             xQueueReset(commandQueue);
 
-            // Drain internal point buffer
+            // Drain internal buffers
             while (!pointBuffer.empty())
                 pointBuffer.pop();
+            while (!transitBuffer.empty())
+                transitBuffer.pop();
 
             // Safety: disable tool
             if (dxlCtrl)
@@ -315,8 +316,13 @@ void taskStateMachine(void* parameter) {
             uint32_t elapsed = millis() - delayStartTime;
             if (elapsed >= delayDuration) {
                 Serial.printf("SM: DELAY complete (%lu ms)\n", (unsigned long)delayDuration);
-                state = PlannerState::IDLE;
-                robotState.plannerState = PlannerState::IDLE;
+                if (!transitBuffer.empty() || !pointBuffer.empty()) {
+                    state = PlannerState::EXECUTING;
+                    robotState.plannerState = PlannerState::EXECUTING;
+                } else {
+                    state = PlannerState::IDLE;
+                    robotState.plannerState = PlannerState::IDLE;
+                }
             }
         }
 
@@ -324,41 +330,92 @@ void taskStateMachine(void* parameter) {
         // 3. STATE: EXECUTING — send interpolated points at 100Hz
         // ====================================================================
         if (state == PlannerState::EXECUTING) {
-            if (!pointBuffer.empty()) {
-                TargetState target = pointBuffer.front();
+            std::queue<TargetState>* activeBuffer = nullptr;
+            if (!transitBuffer.empty()) activeBuffer = &transitBuffer;
+            else if (!pointBuffer.empty()) activeBuffer = &pointBuffer;
+            
+            if (activeBuffer != nullptr) {
+                TargetState target = activeBuffer->front();
 
-                Point2D targetXY = target.toPoint2D();
-                JointAngles targetAngles;
-                ArmConfig usedConfig;
-
-                bool ikSuccess = kinematics.inverse(targetXY, targetAngles, currentConfig, usedConfig);
-
-                if (!ikSuccess) {
-                    Serial.printf("SM: IK failed for (%.2f, %.2f)\n", targetXY.x, targetXY.y);
-                } else if (usedConfig != currentConfig) {
-                    Serial.printf("SM: Config switch needed: %s -> %s at (%.1f, %.1f)\n",
-                                  currentConfig == ArmConfig::RIGHT_ELBOW ? "RIGHT" : "LEFT",
-                                  usedConfig == ArmConfig::RIGHT_ELBOW ? "RIGHT" : "LEFT",
-                                  targetXY.x, targetXY.y);
-
-                    targetConfig = usedConfig;
-                    configSwitchPending = true;
-                    switchTarget = target;
-
-                    state = PlannerState::SWITCHING_CONFIG;
-                    robotState.plannerState = PlannerState::SWITCHING_CONFIG;
+                if (target.mode == MoveMode::JOINT) {
+                    // Bypass IK, move dynamically in joint space
+                    activeBuffer->pop();
+                    if (dxlCtrl) dxlCtrl->syncWriteAngles(target.x, target.y);
+                    
+                    JointAngles targetAngles(target.x, target.y);
+                    robotState.currentAngles = targetAngles;
+                    
+                    // Maintain Cartesian position correctly via Forward Kinematics for UI
+                    Point2D fkXY;
+                    kinematics.forward(targetAngles, fkXY);
+                    robotState.currentPosition = fkXY;
+                    robotState.isMoving = true;
+                    currentState = target; 
+                } else if (target.mode == MoveMode::DELAY_MS) {
+                    activeBuffer->pop();
+                    delayDuration = target.x;
+                    delayStartTime = millis();
+                    state = PlannerState::DELAYING;
+                    robotState.plannerState = PlannerState::DELAYING;
+                } else if (target.mode == MoveMode::TOOL_UP_ASYNC) {
+                    activeBuffer->pop();
+                    Serial.println("SM: Async TOOL_UP from transit buffer");
+                    toolTargetAngle = 175.0f;
+                    toolMovingDown = false;
+                    toolMovingUp = true;
+                    toolActuateStartTime = millis();
+                    state = PlannerState::TOOL_ACTUATING;
+                    robotState.plannerState = PlannerState::TOOL_ACTUATING;
+                    robotState.isMoving = true;
+                } else if (target.mode == MoveMode::TOOL_DOWN_ASYNC) {
+                    activeBuffer->pop();
+                    Serial.println("SM: Async TOOL_DOWN from transit buffer");
+                    toolMovingDown = true;
+                    toolMovingUp = false;
+                    toolActuateStartTime = millis();
+                    state = PlannerState::TOOL_ACTUATING;
+                    robotState.plannerState = PlannerState::TOOL_ACTUATING;
                     robotState.isMoving = true;
                 } else {
-                    pointBuffer.pop();
-                    if (dxlCtrl) {
-                        dxlCtrl->syncWriteAngles(targetAngles.theta1, targetAngles.theta2);
+                    // Mode is CARTESIAN
+                    Point2D targetXY = target.toPoint2D();
+                    JointAngles targetAngles;
+                    ArmConfig usedConfig;
+
+                    bool ikSuccess = kinematics.inverse(targetXY, targetAngles, currentConfig, usedConfig);
+
+                    if (!ikSuccess) {
+                        Serial.printf("SM: IK failed for (%.2f, %.2f)\n", targetXY.x, targetXY.y);
+                        activeBuffer->pop();
+                    } else if (usedConfig != currentConfig) {
+                        Serial.printf("SM: Config switch needed: %s -> %s at (%.1f, %.1f)\n",
+                                      currentConfig == ArmConfig::RIGHT_ELBOW ? "RIGHT" : "LEFT",
+                                      usedConfig == ArmConfig::RIGHT_ELBOW ? "RIGHT" : "LEFT",
+                                      targetXY.x, targetXY.y);
+
+                        targetConfig = usedConfig;
+                        configSwitchPending = true;
+                        // Check actual servo position — robotState.toolActive may have
+                        // been overwritten to false by interpolated MOVE_TO points
+                        restoreToolAfterSwitch = (toolServo.getAngle() < 150);
+
+                        state = PlannerState::SWITCH_RAISE_TOOL;
+                        robotState.plannerState = PlannerState::SWITCH_RAISE_TOOL;
+                        robotState.isMoving = true;
+                        Serial.printf("SM:   servoAngle=%d, restoreTool=%s\n",
+                                      toolServo.getAngle(),
+                                      restoreToolAfterSwitch ? "YES" : "NO");
+                        // Note: We deliberately DO NOT pop the buffer here. The point stays at the front for later execution.
+                    } else {
+                        activeBuffer->pop();
+                        if (dxlCtrl) {
+                            dxlCtrl->syncWriteAngles(targetAngles.theta1, targetAngles.theta2);
+                        }
+                        robotState.currentAngles = targetAngles;
+                        robotState.currentPosition = targetXY;
+                        robotState.isMoving = true;
+                        currentState = TargetState(targetXY.x, targetXY.y);
                     }
-                    robotState.currentAngles = targetAngles;
-                    robotState.currentPosition = targetXY;
-                    robotState.toolZ = target.z;
-                    robotState.toolActive = target.toolActive;
-                    robotState.isMoving = true;
-                    currentState = target;
                 }
             } else {
                 // No more points — check if motors have settled
@@ -408,76 +465,138 @@ void taskStateMachine(void* parameter) {
                     robotState.toolZ = 0.0f;
                     robotState.toolActive = false;
                 }
-                state = PlannerState::IDLE;
-                robotState.plannerState = PlannerState::IDLE;
-                robotState.isMoving = false;
+                
+                if (!transitBuffer.empty() || !pointBuffer.empty()) {
+                    state = PlannerState::EXECUTING;
+                    robotState.plannerState = PlannerState::EXECUTING;
+                } else {
+                    state = PlannerState::IDLE;
+                    robotState.plannerState = PlannerState::IDLE;
+                    robotState.isMoving = false;
+                }
             }
         }
 
         // ====================================================================
-        // 5. STATE: SWITCHING_CONFIG — switch arm config at current position
+        // 5. STATE: SWITCH_RAISE_TOOL — raise tool non-blockingly before switch
+        // ====================================================================
+        if (state == PlannerState::SWITCH_RAISE_TOOL) {
+            if (restoreToolAfterSwitch) {
+                // Initialize servo upward motion if not already moving
+                if (!toolMovingUp) {
+                    Serial.println("SM:   Tool is DOWN - raising before config switch");
+                    toolTargetAngle = 175.0f;
+                    toolMovingDown = false;
+                    toolMovingUp = true;
+                    toolActuateStartTime = millis();
+                }
+                
+                bool done = toolServo.stepUp(TOOL_STEP_DEG, toolTargetAngle);
+                if (done) {
+                    toolMovingUp = false;
+                    Serial.println("SM:   Tool raised");
+                    robotState.toolZ = 0.0f;
+                    robotState.toolActive = false;
+                    
+                    state = PlannerState::SWITCHING_CONFIG;
+                    robotState.plannerState = PlannerState::SWITCHING_CONFIG;
+                }
+            } else {
+                // Tool already up, proceed immediately
+                state = PlannerState::SWITCHING_CONFIG;
+                robotState.plannerState = PlannerState::SWITCHING_CONFIG;
+            }
+        }
+
+        // ====================================================================
+        // 5b. STATE: SWITCHING_CONFIG — enqueue safe transit poses
         // ====================================================================
         if (state == PlannerState::SWITCHING_CONFIG) {
-            Serial.printf("SM: SWITCHING_CONFIG: %s -> %s\n",
-                          currentConfig == ArmConfig::RIGHT_ELBOW ? "RIGHT" : "LEFT",
-                          targetConfig == ArmConfig::RIGHT_ELBOW ? "RIGHT" : "LEFT");
-
             ArmConfig newConfig = targetConfig;
-            Point2D targetXY = switchTarget.toPoint2D();
-          
-            if (currentState.toolActive) {
-                Serial.println("SM:   Tool is DOWN - raising before config switch");
-
-                toolTargetAngle = 175.0f;
-                toolMovingDown = false;
-                toolMovingUp = true;
-                toolActuateStartTime = millis();
-
-                while (!toolMovingUp || toolServo.getAngle() < 175) {
-                    if (toolMovingUp) {
-                        bool done = toolServo.stepUp(TOOL_STEP_DEG, toolTargetAngle);
-                        if (done) {
-                            toolMovingUp = false;
-                            Serial.println("SM:   Tool raised");
-                        }
-                    }
-                    vTaskDelay(pdMS_TO_TICKS(20));
-                }
-
-                robotState.toolZ = 0.0f;
-                robotState.toolActive = false;
-                currentState.z = 0.0f;
-                currentState.toolActive = false;
-            }
-
+            
+            // The trigger point is at pointBuffer.front() — the transit will
+            // deliver the arm to this exact position, so we pop it afterwards.
+            TargetState nextTarget = pointBuffer.front();
+            Point2D targetXY = nextTarget.toPoint2D();
             JointAngles switchAngles;
+            
             if (kinematics.inverse(targetXY, switchAngles, newConfig)) {
-                Serial.printf("SM:   Moving to (%.1f, %.1f) with new config\n", targetXY.x,
-                              targetXY.y);
+                JointAngles current = robotState.currentAngles;
 
-                if (dxlCtrl) {
-                    dxlCtrl->syncWriteAngles(switchAngles.theta1, switchAngles.theta2);
+                Serial.printf("SM:   Config switch transit plan:\n");
+                Serial.printf("SM:     FROM  t1=%.1f t2=%.1f [%s]\n",
+                              current.theta1, current.theta2,
+                              currentConfig == ArmConfig::RIGHT_ELBOW ? "RIGHT" : "LEFT");
+                Serial.printf("SM:     TO    t1=%.1f t2=%.1f [%s] -> XY(%.1f, %.1f)\n",
+                              switchAngles.theta1, switchAngles.theta2,
+                              newConfig == ArmConfig::RIGHT_ELBOW ? "RIGHT" : "LEFT",
+                              targetXY.x, targetXY.y);
+
+                int transitSteps = 50;
+                
+                // Phase 0: Small delay to let vibration settle
+                transitBuffer.push(TargetState(250, 0, MoveMode::DELAY_MS));
+
+                // Phase 1: FOLD — theta2 → 0 (arm extends), theta1 constant
+                // The arm sweeps to full extension at the current theta1.
+                Serial.printf("SM:     Phase1 FOLD: t2 %.1f -> 0 (t1=%.1f fixed)\n",
+                              current.theta2, current.theta1);
+                for (int i = 1; i <= transitSteps; i++) {
+                    float t = (float)i / transitSteps;
+                    float t1 = current.theta1;
+                    float t2 = current.theta2 * (1.0f - t);
+                    transitBuffer.push(TargetState(t1, t2, MoveMode::JOINT));
+                }
+                
+                // Phase 2: ROTATE — theta1 sweeps to target, theta2 stays 0
+                // With theta2=0, the arm traces a clean arc at max reach (L1+L2).
+                // No wild intermediate FK positions possible.
+                Serial.printf("SM:     Phase2 ROTATE: t1 %.1f -> %.1f (t2=0 fixed)\n",
+                              current.theta1, switchAngles.theta1);
+                for (int i = 1; i <= transitSteps; i++) {
+                    float t = (float)i / transitSteps;
+                    float t1 = current.theta1 + t * (switchAngles.theta1 - current.theta1);
+                    float t2 = 0.0f;
+                    transitBuffer.push(TargetState(t1, t2, MoveMode::JOINT));
                 }
 
-                while (dxlCtrl && dxlCtrl->isMoving()) {
-                    dxlCtrl->update();
-                    vTaskDelay(pdMS_TO_TICKS(10));
+                // Phase 3: UNFOLD — theta2 opens to target config, theta1 constant
+                Serial.printf("SM:     Phase3 UNFOLD: t2 0 -> %.1f (t1=%.1f fixed)\n",
+                              switchAngles.theta2, switchAngles.theta1);
+                for (int i = 1; i <= transitSteps; i++) {
+                    float t = (float)i / transitSteps;
+                    float t1 = switchAngles.theta1;
+                    float t2 = t * switchAngles.theta2;
+                    transitBuffer.push(TargetState(t1, t2, MoveMode::JOINT));
                 }
+
+                // Phase 4: Settling delay
+                transitBuffer.push(TargetState(250, 0, MoveMode::DELAY_MS));
+
+                // Phase 5: Restore tool if it was down before switch
+                if (restoreToolAfterSwitch) {
+                    transitBuffer.push(TargetState(0, 0, MoveMode::TOOL_DOWN_ASYNC));
+                    transitBuffer.push(TargetState(250, 0, MoveMode::DELAY_MS));
+                }
+
+                // Pop the trigger point — transit already delivers us there
+                pointBuffer.pop();
+
+                // Update currentState to the Cartesian position we arrived at
+                currentState = TargetState(targetXY.x, targetXY.y);
 
                 currentConfig = newConfig;
                 configSwitchPending = false;
-
-                Serial.printf("SM:   Config switched to %s, resuming execution\n",
-                              currentConfig == ArmConfig::RIGHT_ELBOW ? "RIGHT" : "LEFT");
-
+                
                 state = PlannerState::EXECUTING;
                 robotState.plannerState = PlannerState::EXECUTING;
-
-                currentState = switchTarget;
-                Serial.printf("SM:   -> Config switched, remaining %d points in buffer\n",
-                              (int)pointBuffer.size());
+                
+                Serial.printf("SM:   -> 3-phase transit generated (%d pts/phase), resuming\n", transitSteps);
             } else {
-                Serial.printf("SM: ERROR - target not reachable with new config!\n");
+                Serial.printf("SM: ERROR - target (%.1f, %.1f) not reachable with new config!\n",
+                              targetXY.x, targetXY.y);
+                // Discard the unreachable point
+                pointBuffer.pop();
                 state = PlannerState::IDLE;
                 robotState.plannerState = PlannerState::IDLE;
                 configSwitchPending = false;
@@ -496,11 +615,9 @@ void taskStateMachine(void* parameter) {
                     // MOVE_TO: interpolate path, fill pointBuffer
                     // ──────────────────────────────────────────────────────
                     case Command::MOVE_TO: {
-                        TargetState target(cmd.x, cmd.y, cmd.z, cmd.toolState);
-                        Point2D targetXY = target.toPoint2D();
+                        Point2D targetXY(cmd.x, cmd.y);
 
-                        Serial.printf("SM: MOVE_TO (%.2f, %.2f) z=%.2f spd=%.1f tool=%s\n", cmd.x,
-                                      cmd.y, cmd.z, cmd.speed, cmd.toolState ? "ON" : "OFF");
+                        Serial.printf("SM: MOVE_TO (%.2f, %.2f) spd=%.1f\n", cmd.x, cmd.y, cmd.speed);
 
                         if (!kinematics.isReachable(targetXY)) {
                             Serial.printf("SM: UNREACHABLE! (%.2f, %.2f)\n", cmd.x, cmd.y);
@@ -514,18 +631,14 @@ void taskStateMachine(void* parameter) {
                         std::queue<Point2D> xyQueue;
                         int numPoints = planner.planPath(startXY, targetXY, xyQueue);
 
-                        // Fill internal point buffer with 4D interpolation
-                        int i = 0;
+                        // Fill point buffer with XY interpolation
                         while (!xyQueue.empty()) {
                             Point2D pt = xyQueue.front();
                             xyQueue.pop();
-                            float t = (numPoints > 1) ? (float)i / (numPoints - 1) : 1.0f;
-                            float z = currentState.z + t * (target.z - currentState.z);
-                            pointBuffer.push(TargetState(pt.x, pt.y, z, target.toolActive));
-                            i++;
+                            pointBuffer.push(TargetState(pt.x, pt.y));
                         }
 
-                        currentState = target;
+                        currentState = TargetState(cmd.x, cmd.y);
                         state = PlannerState::EXECUTING;
                         robotState.plannerState = PlannerState::EXECUTING;
                         robotState.isMoving = true;
@@ -564,17 +677,21 @@ void taskStateMachine(void* parameter) {
                     }
 
                     // ──────────────────────────────────────────────────────
-                    // TOOL_CONTROL: legacy boolean format
+                    // TOOL_CONTROL: legacy boolean -> real servo actuation
                     // ──────────────────────────────────────────────────────
                     case Command::TOOL_CONTROL: {
-                        Serial.printf("SM: TOOL_CONTROL %s z=%.2f\n", cmd.toolState ? "ON" : "OFF",
-                                      cmd.z);
-                        TargetState toolPoint(currentState.x, currentState.y, cmd.z, cmd.toolState);
-                        pointBuffer.push(toolPoint);
-                        currentState.z = cmd.z;
-                        currentState.toolActive = cmd.toolState;
-                        state = PlannerState::EXECUTING;
-                        robotState.plannerState = PlannerState::EXECUTING;
+                        Serial.printf("SM: TOOL_CONTROL %s\n", cmd.toolState ? "ON" : "OFF");
+                        if (cmd.toolState) {
+                            toolMovingDown = true;
+                            toolMovingUp = false;
+                        } else {
+                            toolTargetAngle = 175.0f;
+                            toolMovingDown = false;
+                            toolMovingUp = true;
+                        }
+                        toolActuateStartTime = millis();
+                        state = PlannerState::TOOL_ACTUATING;
+                        robotState.plannerState = PlannerState::TOOL_ACTUATING;
                         robotState.isMoving = true;
                         break;
                     }
@@ -583,14 +700,13 @@ void taskStateMachine(void* parameter) {
                     // HOME: G28 — tool OFF, raise Z, travel to home
                     // ──────────────────────────────────────────────────────
                     case Command::HOME: {
-                        Serial.printf("SM: HOME -> (%.0f, %.0f, z=0) tool=OFF\n", HOME_X, HOME_Y);
+                        Serial.printf("SM: HOME -> (%.0f, %.0f) tool=OFF\n", HOME_X, HOME_Y);
                         Point2D homePos(HOME_X, HOME_Y);
                         Point2D startXY = currentState.toPoint2D();
 
-                        // First: raise Z and turn tool OFF
-                        if (currentState.toolActive || currentState.z > 0.1f) {
-                            pointBuffer.push(
-                                TargetState(currentState.x, currentState.y, 5.0f, false));
+                        // First: raise tool if physically down
+                        if (toolServo.getAngle() < 150) {
+                            pointBuffer.push(TargetState(0, 0, MoveMode::TOOL_UP_ASYNC));
                         }
 
                         // Then: travel to home
@@ -598,20 +714,13 @@ void taskStateMachine(void* parameter) {
                         std::queue<Point2D> xyQueue;
                         int numPts = planner.planPath(startXY, homePos, xyQueue);
 
-                        int i = 0;
                         while (!xyQueue.empty()) {
                             Point2D pt = xyQueue.front();
                             xyQueue.pop();
-                            float t = (numPts > 1) ? (float)i / (numPts - 1) : 1.0f;
-                            float z = 5.0f * (1.0f - t);
-                            pointBuffer.push(TargetState(pt.x, pt.y, z, false));
-                            i++;
+                            pointBuffer.push(TargetState(pt.x, pt.y));
                         }
 
-                        currentState = TargetState(HOME_X, HOME_Y, 0, false);
-                        robotState.currentPosition = homePos;
-                        robotState.toolZ = 0;
-                        robotState.toolActive = false;
+                        currentState = TargetState(HOME_X, HOME_Y);
                         robotState.isHomed = true;
 
                         state = PlannerState::EXECUTING;
@@ -731,6 +840,9 @@ void taskStateMachine(void* parameter) {
                     break;
                 case PlannerState::SWITCHING_CONFIG:
                     stateStr = "SWCH";
+                    break;
+                case PlannerState::SWITCH_RAISE_TOOL:
+                    stateStr = "SWTL";
                     break;
             }
 

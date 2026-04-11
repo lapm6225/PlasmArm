@@ -35,9 +35,9 @@ async def run_test(ip: str):
         return
 
     # Test squence
-    
-    
-    commands = [
+    """
+    """ 
+    commands1 = [
     {"type": "DELAY", "ms": 500},
     {"type": "TOOL", "state": "UP"},
     {"type": "MOVE_TO", "x": 200, "y": 200, "speed": 100},
@@ -52,17 +52,36 @@ async def run_test(ip: str):
     {"type": "TOOL", "state": "UP"},
     {"type": "DELAY", "ms": 500},
     ]
-    """
-    """   
-    """  
+    
+      
+    
     # Setting and saving home
-    commands=[
+    commands2=[
         {"type": "DELAY", "ms": 500},
         {"type": "SET_HOME"},
         {"type": "DELAY", "ms": 5000},
         {"type": "SAVE_HOME"},
-    ] 
-     
+    ]
+
+    commands3 = [
+        {"type": "DELAY", "ms": 500},
+        {"type": "TOOL", "state": "DOWN"},
+        #{"type": "MOVE_TO", "x": 160, "y": 300, "speed": 100},
+        #{"type": "MOVE_TO", "x": 160, "y": 300, "speed": 100},
+        #{"type": "MOVE_TO", "x": -160, "y": 300, "speed": 100},
+        {"type": "MOVE_TO", "x": -160, "y": 100, "speed": 100},
+
+    ]
+
+    
+    commands4 = [
+        {"type": "DELAY", "ms": 500},
+        {"type": "TOOL", "state": "DOWN"},
+
+    ]
+
+    commands=commands3
+    """
         {"type": "MOVE_TO", "x": 200, "y": 200, "speed": 100},
         {"type": "TOOL", "state": "DOWN"},
         {"type": "MOVE_TO", "x": 200, "y": 100, "speed": 100},

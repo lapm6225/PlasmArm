@@ -30,7 +30,17 @@ enum class PlannerState {
     EXECUTING,        // Processing interpolated points at 100Hz
     TOOL_ACTUATING,   // Waiting for tool Z motion to complete
     DELAYING,         // Waiting for millis()-based delay to elapse
-    SWITCHING_CONFIG  // Transitioning to new arm config
+    SWITCHING_CONFIG, // Transitioning to new arm config
+    SWITCH_RAISE_TOOL // Waiting for tool to raise before config switch
+};
+
+// Mode of movement for the target state
+enum class MoveMode {
+    CARTESIAN,       // x, y are Cartesian coordinates (IK applies)
+    JOINT,           // x=theta1, y=theta2 (raw joints, IK bypassed)
+    DELAY_MS,        // x=milliseconds to wait
+    TOOL_UP_ASYNC,   // trigger tool up
+    TOOL_DOWN_ASYNC  // trigger tool down
 };
 
 // 2D Cartesian point
@@ -53,18 +63,20 @@ struct JointAngles {
     JointAngles(float t1, float t2) : theta1(t1), theta2(t2) {}
 };
 
-// 4D motion target: X, Y, Z, Tool
+// Motion target: X, Y (or t1, t2 for JOINT, or ms for DELAY_MS)
+// Tool state is NOT embedded here — it is managed exclusively by
+// TOOL_UP/TOOL_DOWN commands and the TOOL_ACTUATING state.
 struct TargetState {
-    float x;
-    float y;
-    float z;
-    bool toolActive;
+    MoveMode mode;
+    float x; // Cartesian X | theta1 (JOINT) | milliseconds (DELAY_MS)
+    float y; // Cartesian Y | theta2 (JOINT) | unused for DELAY/TOOL modes
 
-    TargetState() : x(0), y(0), z(0), toolActive(false) {}
-    TargetState(float x, float y, float z = 0.0f, bool tool = false)
-        : x(x), y(y), z(z), toolActive(tool) {}
+    TargetState() : mode(MoveMode::CARTESIAN), x(0), y(0) {}
+    TargetState(float x, float y, MoveMode m = MoveMode::CARTESIAN)
+        : mode(m), x(x), y(y) {}
 
     Point2D toPoint2D() const { return Point2D(x, y); }
+    JointAngles toJointAngles() const { return JointAngles(x, y); }
 };
 
 // Robot state information

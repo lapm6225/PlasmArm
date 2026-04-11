@@ -109,6 +109,13 @@ private:
     bool moving2 = false;
     float target1_internal = 0.0f;
     float target2_internal = 0.0f;
+    
+    // Stall tracking
+    int stallCount1 = 0;
+    int stallCount2 = 0;
+    float lastPos1 = -999.0f;
+    float lastPos2 = -999.0f;
+
     static const float POSITION_TOLERANCE;
 
     // SyncWrite configuration

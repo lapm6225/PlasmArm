@@ -7,7 +7,7 @@ static constexpr int SERVO_PERIOD_US = 1000000 / SERVO_FREQUENCY_HZ;
 SG90::SG90(int servoPin, int switchPin, int ledcChannel)
     : _pin(servoPin), _switchPin(switchPin), _ledcChannel(ledcChannel), _angle(90) {
     pinMode(_pin, OUTPUT);
-    pinMode(_switchPin, INPUT);
+    pinMode(_switchPin, INPUT_PULLUP);
     ledcSetup(_ledcChannel, SERVO_FREQUENCY_HZ, SERVO_RESOLUTION_BITS);
     ledcAttachPin(_pin, _ledcChannel);
 }
