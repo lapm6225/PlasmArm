@@ -113,7 +113,9 @@ struct Command {
         DELAY,          // G4 dwell
         CONFIG_CHANGE,  // Arm config switch (LEFT/RIGHT_ELBOW)
         SET_HOME,       // Disable torque for manual positioning
-        SAVE_HOME       // Save current encoder position as home (0,0)
+        SAVE_HOME,      // Save current encoder position as home (0,0)
+        TORQUE_OFF,     // Disable torque
+        TORQUE_ON       // Enable torque
     };
 
     Type type;

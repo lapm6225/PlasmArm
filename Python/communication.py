@@ -223,7 +223,7 @@ class RobotWSClient:
 
     async def send_home(self):
         """Envoyer la commande HOME."""
-        print("  📤 HOME")
+        print("HOME")
         return await self.send_json({"type": "HOME"})
 
     async def send_move(self, x: float, y: float, z: float = 0.0,
@@ -237,24 +237,25 @@ class RobotWSClient:
             "speed": speed,
             "tool": tool,
         }
-        print(f"  📤 MOVE_TO ({x:.2f}, {y:.2f}) z={z:.1f} speed={speed:.0f} tool={'ON' if tool else 'OFF'}")
+        print(f"MOVE_TO ({x:.2f}, {y:.2f}) z={z:.1f} speed={speed:.0f} tool={'ON' if tool else 'OFF'}")
         return await self.send_json(cmd)
 
     async def send_tool(self, state: bool, z: float = 0.0):
         """Envoyer une commande TOOL."""
         cmd = {"type": "TOOL", "state": state, "z": z}
         label = "ON" if state else "OFF"
-        print(f"  📤 TOOL {label} z={z:.1f}")
+        print(f"TOOL {label} z={z:.1f}")
         return await self.send_json(cmd)
 
     async def send_stop(self):
         """Envoyer la commande STOP."""
-        print("  📤 STOP (arrêt d'urgence)")
+        print("STOP (arrêt d'urgence)")
+        self.streaming = False
         return await self.send_json({"type": "STOP"})
 
     async def send_set_speed(self, speed: float):
         """Envoyer la commande SET_SPEED."""
-        print(f"  📤 SET_SPEED {speed:.1f} mm/s")
+        print(f"SET_SPEED {speed:.1f} mm/s")
         return await self.send_json({"type": "SET_SPEED", "speed": speed})
 
     async def stream_commands(self, commands: list):
@@ -282,7 +283,7 @@ class RobotWSClient:
 
         try:
             i = 0
-            while i < len(commands):
+            while i < len(commands) and self.streaming:
                 if not self.connected:
                     print("\n  ❌  Connexion perdue pendant l'envoi !")
                     return False
@@ -427,6 +428,12 @@ class RobotWorker(QThread):
         """Arrête la boucle du thread pour fermer proprement."""
         self._stop_requested = True
 
+    def trigger_emergency_stop(self):
+        """Arrête le robot et coupe le streaming (thread-safe)."""
+        if self.loop and self.client.connected:
+            self.client.streaming = False
+            asyncio.run_coroutine_threadsafe(self.client.send_stop(), self.loop)
+
     def send_cmd(self, cmd_dict):
         """Envoie une commande au robot (thread-safe)."""
         if self.loop and self.client.connected:
@@ -457,4 +464,4 @@ def load_dxf_commands(filename: str) -> list:
         return commands
     except Exception as e:
         print(f"  ❌ Erreur de parsing DXF: {e}")
-        return []
+        return []

@@ -651,6 +651,10 @@ void taskStateMachine(void* parameter) {
                     // TOOL_UP: raise Z, tool OFF (non-blocking)
                     // ──────────────────────────────────────────────────────
                     case Command::TOOL_UP: {
+                        if (!robotState.toolActive && toolServo.getAngle() >= 170) {
+                            Serial.println("SM: Tool already UP, ignoring");
+                            break;
+                        }
                         Serial.println("SM: TOOL_UP (z=0, tool=OFF)");
                         toolTargetAngle = 175.0f;  // Retracted position
                         toolMovingDown = false;
@@ -666,6 +670,10 @@ void taskStateMachine(void* parameter) {
                     // TOOL_DOWN: lower Z, tool ON (non-blocking)
                     // ──────────────────────────────────────────────────────
                     case Command::TOOL_DOWN: {
+                        if (robotState.toolActive) {
+                            Serial.println("SM: Tool already DOWN, ignoring");
+                            break;
+                        }
                         Serial.println("SM: TOOL_DOWN (z=5, tool=ON)");
                         toolMovingDown = true;
                         toolMovingUp = false;
@@ -680,6 +688,10 @@ void taskStateMachine(void* parameter) {
                     // TOOL_CONTROL: legacy boolean -> real servo actuation
                     // ──────────────────────────────────────────────────────
                     case Command::TOOL_CONTROL: {
+                        if (cmd.toolState == robotState.toolActive) {
+                            Serial.println("SM: Tool state already matches, ignoring");
+                            break;
+                        }
                         Serial.printf("SM: TOOL_CONTROL %s\n", cmd.toolState ? "ON" : "OFF");
                         if (cmd.toolState) {
                             toolMovingDown = true;

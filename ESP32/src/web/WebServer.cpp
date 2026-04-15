@@ -1,7 +1,8 @@
 #include "WebServer.h"
 #include "../Config.h"
-#include "web_assets.h"
 #include <ArduinoJson.h>
+
+extern volatile bool stopRequested;
 
 WebServer::WebServer() : server(nullptr), ws(nullptr), commandQueue(nullptr), processedCount(0) {}
 
@@ -39,27 +40,6 @@ void WebServer::begin() {
     }
 }
 
-// partie http
-void WebServer::handleRoot(AsyncWebServerRequest* request) {
-    // Send the HTML page from PROGMEM with UTF-8 charset
-    request->send(200, "text/html; charset=UTF-8", WEB_HTML);
-}
-
-void WebServer::handleMove(AsyncWebServerRequest* request) {
-    // HTTP handler removed
-    request->send(404, "text/plain", "Not Found");
-}
-
-void WebServer::handleHome(AsyncWebServerRequest* request) {
-    // HTTP handler removed
-    request->send(404, "text/plain", "Not Found");
-}
-
-void WebServer::handleStatus(AsyncWebServerRequest* request) {
-    // HTTP handler removed
-    request->send(404, "text/plain", "Not Found");
-}
-// fin partie http
 
 // partie websocket
 void WebServer::onWebSocketEvent(AsyncWebSocket* server, AsyncWebSocketClient* client,
@@ -105,8 +85,22 @@ void WebServer::onWebSocketEvent(AsyncWebSocket* server, AsyncWebSocketClient* c
         Command cmd;
 
         if (parseCommand(message, cmd)) {
-            if (commandQueue && xQueueSend(commandQueue, &cmd, 0) == pdTRUE) {
-                processedCount++;  // Increment only when successfully queued
+            bool queued = false;
+
+            if (cmd.type == Command::STOP) {
+                stopRequested = true;
+                Serial.println("WS: IMMEDIATE STOP RECORDED. Triggering stopRequested flag.");
+                // Try to queue it anyway so it gets popped later, but flag will trigger stop immediately
+                if (commandQueue) {
+                    xQueueSend(commandQueue, &cmd, 0);
+                }
+                queued = true;
+            } else {
+                queued = (commandQueue && xQueueSend(commandQueue, &cmd, 0) == pdTRUE);
+            }
+
+            if (queued) {
+                processedCount++;  // Increment only when successfully queued (or it was a STOP)
 
                 // Always try to send an ACK so Python's in_flight counter stays accurate.
                 // If the outbound queue is full, call cleanupClients() to free space first.
