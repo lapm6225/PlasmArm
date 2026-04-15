@@ -302,9 +302,15 @@ void taskStateMachine(void* parameter) {
             while (!transitBuffer.empty())
                 transitBuffer.pop();
 
-            // Safety: disable tool
-            if (dxlCtrl)
+            // Safety: disable tool actuating logic
+            toolMovingDown = false;
+            toolMovingUp = false;
+            configSwitchPending = false;
+            
+            if (dxlCtrl) {
                 dxlCtrl->update();
+                dxlCtrl->stop();  // COMMAND MOTORS TO STOP IMMEDIATELY
+            }
 
             Serial.println("SM: STOP! Cleared all queues, tool OFF, state -> IDLE");
         }

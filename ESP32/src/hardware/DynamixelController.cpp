@@ -229,6 +229,33 @@ bool DynamixelController::isMoving() {
     return (moving1 || moving2);
 }
 
+void DynamixelController::stop() {
+    if (homeMode) return;
+    
+    // Read current positions
+    float pos1 = readOneMotor(ID_M1);
+    float pos2 = readOneMotor(ID_M2);
+    
+    if (pos1 >= 0.0f && pos2 >= 0.0f) {
+        // Set goal to current position (UNIT_DEGREE)
+        dxl.setGoalPosition(ID_M1, pos1, UNIT_DEGREE);
+        dxl.setGoalPosition(ID_M2, pos2, UNIT_DEGREE);
+        
+        // Update targets so isMoving() can settle
+        target1_internal = normalize(pos1);
+        target2_internal = normalize(pos2);
+        
+        // Update sync write buffer with the stopped position
+        sw_data_array[0].goal_position = (int32_t)(target1_internal * DEG_TO_PULSE);
+        sw_data_array[1].goal_position = (int32_t)(target2_internal * DEG_TO_PULSE);
+        sw_infos.is_info_changed = true;
+    }
+    
+    moving1 = false;
+    moving2 = false;
+    Serial.println("DXL: Motors STOPPED at current position.");
+}
+
 void DynamixelController::update() {
     // Throttle updates to prevent flooding the RS485 bus
     static unsigned long lastUpdate = 0;

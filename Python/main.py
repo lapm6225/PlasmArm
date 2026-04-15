@@ -380,7 +380,7 @@ def connect_buttons():
 
     window.startBtn.clicked.connect(func_print) # Start or resume the print
     window.pauseBtn.clicked.connect(func_stop) # pause the print
-    #window.stopBtn.clicked.connect() # stop and cancel the print
+    window.stopBtn.clicked.connect(func_stop) # stop and cancel the print
 
     window.helpBtn.clicked.connect(open_help) # Opens a help dialog
 

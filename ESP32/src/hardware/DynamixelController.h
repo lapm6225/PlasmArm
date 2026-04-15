@@ -82,6 +82,11 @@ public:
     bool isMoving();
 
     /**
+     * @brief Stop motors immediately at their current mechanical position
+     */
+    void stop();
+
+    /**
      * @brief Manually update state for movement tracking
      */
     void update();
