@@ -18,7 +18,7 @@ public:
     /**
      * Write an absolute angle to the servo (0 - 180).
      */
-    void write(int angle);
+    void write(float angle);
 
     /**
      * Move the servo downwards by one step increment.
@@ -38,27 +38,19 @@ public:
     /**
      * Get the current angle of the servo.
      */
-    int getAngle();
+    float getAngle();
 
-    /**
-     * Blocking move down until switch pressed (for backward compatibility).
-     * @deprecated Use stepDown in non-blocking loops instead.
-     */
     bool down(int stepDelayMs = 20);
 
-    /**
-     * Blocking move up by degrees (for backward compatibility).
-     * @deprecated Use stepUp in non-blocking loops instead.
-     */
-    bool up(int degrees = 60, int stepDelayMs = 20);
+    bool up(float degrees = 60.0f, int stepDelayMs = 20);
 
 private:
     int _pin;
     int _switchPin;
     int _ledcChannel;
-    int _angle;
+    float _angle;
 
-    uint32_t angleToDuty(int angle) const;
+    uint32_t angleToDuty(float angle) const;
 };
 
 #endif
