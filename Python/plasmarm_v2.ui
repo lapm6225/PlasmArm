@@ -341,20 +341,23 @@ QLineEdit::placeholder {
                 <string>Connection</string>
                </property>
                <property name="styleSheet">
-                <string notr="true"/>
+                <string notr="true">  </string>
                </property>
                <property name="text">
                 <string>Connection et status</string>
                </property>
                <property name="icon">
                 <iconset resource="ressources.qrc">
-                 <normaloff>:/icons/icons/wifi.svg</normaloff>:/icons/icons/wifi.svg</iconset>
+                 <normaloff>:/icons/icons/wifi-off.svg</normaloff>:/icons/icons/wifi-off.svg</iconset>
                </property>
                <property name="iconSize">
                 <size>
                  <width>24</width>
                  <height>24</height>
                 </size>
+               </property>
+               <property name="checkable">
+                <bool>true</bool>
                </property>
               </widget>
              </item>
@@ -1840,6 +1843,32 @@ QLineEdit::placeholder {
                  </spacer>
                 </item>
                 <item>
+                 <widget class="QPushButton" name="clickMoveBtn">
+                  <property name="styleSheet">
+                   <string notr="true">QPushButton:checked {
+        background-color: #0078d7;   /* Blue when active */
+        border: 1px solid #004a8f;
+    }</string>
+                  </property>
+                  <property name="text">
+                   <string/>
+                  </property>
+                  <property name="icon">
+                   <iconset resource="ressources.qrc">
+                    <normaloff>:/icons/icons/mouse-pointer.svg</normaloff>:/icons/icons/mouse-pointer.svg</iconset>
+                  </property>
+                  <property name="iconSize">
+                   <size>
+                    <width>24</width>
+                    <height>24</height>
+                   </size>
+                  </property>
+                  <property name="checkable">
+                   <bool>true</bool>
+                  </property>
+                 </widget>
+                </item>
+                <item>
                  <widget class="QPushButton" name="jogBtn">
                   <property name="cursor">
                    <cursorShape>PointingHandCursor</cursorShape>
@@ -1915,6 +1944,12 @@ QLineEdit::placeholder {
                   <property name="icon">
                    <iconset resource="ressources.qrc">
                     <normaloff>:/icons/icons/anchor.svg</normaloff>:/icons/icons/anchor.svg</iconset>
+                  </property>
+                  <property name="iconSize">
+                   <size>
+                    <width>24</width>
+                    <height>24</height>
+                   </size>
                   </property>
                  </widget>
                 </item>

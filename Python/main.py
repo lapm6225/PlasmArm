@@ -1,5 +1,6 @@
 from PyQt6 import QtWidgets, uic
-from PyQt6.QtWidgets import QGraphicsScene, QLineEdit, QGraphicsPixmapItem
+from PyQt6.QtWidgets import QGraphicsScene, QLineEdit, QGraphicsPixmapItem, QGraphicsView
+
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtCore import  Qt, QObject, QEvent, Qt, QTimer
 from collections import namedtuple
@@ -18,6 +19,8 @@ import help_dialog
 # ressources.qrc to compile  with pyrcc6
 import ressources_rc
 
+
+
 class Position:
     def __init__(self, x, y):
         self.x = x
@@ -28,6 +31,8 @@ linear_speed = 1 # mm/click
 shoulder_angle = 0 # degrés
 elbow_angle = 0 # degrés
 tool_raised = True # true == levé / false == baissé
+click_move_enabled = False
+
 
 # --- Données de dimension des bras --- 
 Arm = namedtuple("Arm", ["length", "width"])
@@ -233,6 +238,8 @@ def func_stop():
 # -------------
 
 
+
+
 class AutoFitView(QObject):
     def __init__(self, window, view, scene):
         super().__init__()
@@ -270,6 +277,38 @@ class AutoFitView(QObject):
 
         return False
 
+
+class ClickableGraphicsView(QGraphicsView):
+    def mousePressEvent(self, event):
+        global click_move_enabled, tool_pos
+
+        # Position in widget coordinates (pixels)
+        view_pos = event.position()
+
+        # Convert to scene coordinates
+        scene_pos = self.mapToScene(int(view_pos.x()), int(view_pos.y()))
+
+        # Center relative to pivot (550, 450)
+        origin_x = 550
+        origin_y = 450
+
+        centered_x = scene_pos.x() - origin_x
+        centered_y = scene_pos.y() - origin_y -10
+
+        print("Scene coords:", scene_pos)
+        print("Centered coords:", centered_x, centered_y)
+
+        # 🔥 If toggle is ON → move robot
+        if click_move_enabled:
+            tool_pos.x = centered_x
+            tool_pos.y = centered_y
+            send_target_move()
+            dxf.add_text(window, f"Déplacement vers ({centered_x:.1f}, {centered_y:.1f})")
+
+        super().mousePressEvent(event)
+
+
+
 def connect():
     ip = window.ipEdit.text().strip()
     print("IP entered:", ip)
@@ -280,6 +319,12 @@ def disconnect():
     worker.disconnect_robot()
     dxf.add_text(window, "Déconnexion demandée...")
     print("disconnect")
+
+def toggle_click_move():
+    global click_move_enabled
+    click_move_enabled = not click_move_enabled
+    state = "activé" if click_move_enabled else "désactivé"
+    dxf.add_text(window, f"Déplacement par clic {state}")
 
 # Callbacks QThread
 def on_connected(success):
@@ -404,6 +449,7 @@ def connect_buttons():
     window.maxBtn.clicked.connect(toggle_maximize)
 
     # Right Menu buttons
+    window.clickMoveBtn.clicked.connect(toggle_click_move)
     window.jogBtn.clicked.connect(toggle_control)
     window.homeBtn.clicked.connect(go_home)
     window.manualBtn.clicked.connect(manual)
@@ -424,7 +470,23 @@ if __name__ == "__main__":
     window = QtWidgets.QMainWindow()
     uic.loadUi('plasmarm_v2.ui', window)
     window.setWindowFlags(Qt.WindowType.FramelessWindowHint |Qt.WindowType.Window
+                          
                           )
+    
+    # Replace the Designer-created graphicsView with our clickable subclass
+    old_view = window.graphicsView
+    click_view = ClickableGraphicsView(old_view.parent())
+    click_view.setObjectName(old_view.objectName())
+
+    # Put the new view in the same layout
+    layout = old_view.parent().layout()
+    if layout is not None:
+        layout.replaceWidget(old_view, click_view)
+
+    old_view.deleteLater()
+    window.graphicsView = click_view
+
+    
     # Génération de la scène pour l'affichage--- 
     scene = QGraphicsScene()
     shoulder_img = QPixmap("bras1.png")      # image du segment 1
