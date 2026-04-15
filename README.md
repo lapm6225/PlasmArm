@@ -100,6 +100,7 @@ Agile methodology with incremental feature delivery throughout the project.
 ### Mechanical Assembly Instructions
 
 
+
 **Sub-assembly 5: End Effector**
 
 5a) Insert the spur gear (4) on the rotating arm of the SG90 (2)
@@ -121,6 +122,7 @@ Agile methodology with incremental feature delivery throughout the project.
 5i) Glue the limit switch bracket (9) to the top of the rack (3) as shown in the exploded view
 
 5j) Fix the tool bracket (1) to the end of the second arm with 4x (M2.5 X 15mm) screws
+
 
 
 **Sub-assembly 6: Base Cover & C-clamp**
