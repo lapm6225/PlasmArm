@@ -123,6 +123,7 @@ class DxfParser:
         for shape in shapes:
             if len(shape) < 2:
                 continue
+            start = shape[0]
             if last_x!=round(start[0], 2) or last_y!=round(start[1], 2):
                 commands.append({
                     "type": "TOOL",
@@ -130,7 +131,7 @@ class DxfParser:
                 })
 
             # Travel to start of shape (tool off, Z up)
-            start = shape[0]
+            
             commands.append({
                 "type": "MOVE_TO",
                 "x": round(start[0], 2),
@@ -194,10 +195,10 @@ class DxfParser:
             if cmd["type"] == "MOVE_TO":
                 tool_on = cmd.get("tool", False)
                 label = "[CUT]    " if tool_on else "[TRAVEL] "
-                print(f"  {i:4d} {label} MOVE ({cmd['x']:8.2f}, {cmd['y']:8.2f}) z={cmd['z']:.1f} spd={cmd['speed']:.0f}")
+                print(f"  {i:4d} {label} MOVE ({cmd['x']:8.2f}, {cmd['y']:8.2f})  spd={cmd['speed']:.0f}")
             elif cmd["type"] == "TOOL":
                 state = "ON" if cmd["state"] else "OFF"
-                print(f"  {i:4d} TOOL {state} z={cmd['z']:.1f}")
+                print(f"  {i:4d} TOOL {state}")
             else:
                 print(f"  {i:4d} {cmd['type']}")
         
