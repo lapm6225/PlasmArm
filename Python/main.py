@@ -121,11 +121,9 @@ def go_home():
     global elbow_angle
     shoulder_angle =0
     elbow_angle = -154
-    animator.setAngle(shoulder_angle)
-    animator_elbow.setAngle(elbow_angle)
-
-    # await client.send_command({"type": "HOME"})
-    # await asyncio.sleep(0.3)
+    #animator.setAngle(shoulder_angle)
+    #animator_elbow.setAngle(elbow_angle)
+    worker.send_cmd({"type": "HOME"})
 #-----------------------------
 
 
@@ -145,22 +143,24 @@ def close_file():
 # --- Monter l'outil ---
 def tool_up():
     global tool_raised
-    if tool_raised == True:
-        dxf.add_text(window, "Tool already raised")
-    else:
-        tool_raised = True
-        comm.client.send_command({"type": "TOOL", "state": True, "z": 0.0})
-        dxf.add_text(window, "Tool raised")
+    tool_raised = True
+    worker.send_cmd({"type": "TOOL", "state": "UP"})
+    dxf.add_text(window, "Tool raised (action demandée)")
 
 # --- Descendre l'outil ---
 def tool_down():
     global tool_raised
-    if tool_raised == False:
-        dxf.add_text(window, "Tool already lowered")
-    else:
-        tool_raised = False
-        comm.client.send_command({"type": "TOOL", "state": False, "z": 0.0})
-        dxf.add_text(window, "Tool lowered")
+    tool_raised = False
+    worker.send_cmd({"type": "TOOL", "state": "DOWN"})
+    dxf.add_text(window, "Tool lowered (action demandée)")
+
+def send_target_move():
+    worker.send_cmd({
+        "type": "MOVE_TO",
+        "x": tool_pos.x,
+        "y": -tool_pos.y,
+        "speed": linear_speed
+    })
 
 # --- mouvement linéaire selon la vitesse linéaire ---
 def move_forward():
@@ -168,29 +168,25 @@ def move_forward():
     y = tool_pos.y - linear_speed
     tool_pos.y = y
     print(tool_pos.x, -(tool_pos.y))
-    text = f"Position de l'effecteur: ({tool_pos.x}, {-tool_pos.y})"
-    dxf.add_text(window, text )
+    send_target_move()
     
 def move_backward():
     global tool_pos
     y = tool_pos.y + linear_speed
     tool_pos.y = y
-    text = f"Position de l'effecteur: ({tool_pos.x}, {-tool_pos.y})"
-    dxf.add_text(window, text )
+    send_target_move()
 
 def move_right():
     global tool_pos
     x=tool_pos.x + linear_speed
     tool_pos.x = x
-    text = f"Position de l'effecteur: ({tool_pos.x}, {-tool_pos.y})"
-    dxf.add_text(window, text )
+    send_target_move()
 
 def move_left():
     global tool_pos
     x=tool_pos.x - linear_speed
     tool_pos.x = x
-    text = f"Position de l'effecteur: ({tool_pos.x}, {-tool_pos.y})"
-    dxf.add_text(window, text )
+    send_target_move()
 
 # --- mouvement angulaire selon la vitesse angulaire---
 def shoulder_clockwise():
@@ -198,28 +194,28 @@ def shoulder_clockwise():
     temp_angle = shoulder_angle + angular_speed
     if limit(temp_angle,elbow_angle):
         shoulder_angle= temp_angle
-    animator.setAngle(shoulder_angle)
+    #animator.setAngle(-shoulder_angle)
 
 def shoulder_counterclockwise():
     global shoulder_angle, angular_speed
     temp_angle = shoulder_angle - angular_speed
     if limit(temp_angle,elbow_angle):
         shoulder_angle= temp_angle
-    animator.setAngle(shoulder_angle)
+    #animator.setAngle(-shoulder_angle)
 
 def elbow_clockwise():
     global elbow_angle, angular_speed
     temp_angle = elbow_angle + angular_speed
     if limit(shoulder_angle,temp_angle):
         elbow_angle= temp_angle
-    animator_elbow.setAngle(elbow_angle)
+    #animator_elbow.setAngle(-elbow_angle)
 
 def elbow_counterclockwise():
     global elbow_angle, angular_speed
     temp_angle = elbow_angle - angular_speed
     if limit(shoulder_angle,temp_angle):
         elbow_angle= temp_angle
-    animator_elbow.setAngle(elbow_angle)
+    #animator_elbow.setAngle(-elbow_angle)
 #------------------------------------------------------------------------
 
 # --- Imprimer ---
@@ -235,9 +231,8 @@ def func_print():
 
 # --- Arrêt ---
 def func_stop():
-    # await client.send_command({"type": "STOP"})
-    # await asyncio.sleep(0.5)
-    dxf.add_text(window, "Arrêt de la découpe")
+    worker.send_cmd({"type": "STOP"})
+    dxf.add_text(window, "Arrêt de la découpe (STOP command envoyé)")
 # -------------
 
 
@@ -281,11 +276,50 @@ class AutoFitView(QObject):
 def connect():
     ip = window.ipEdit.text().strip()
     print("IP entered:", ip)
-    comm.RobotWSClient.connect(window, ip)
+    dxf.add_text(window, f"Connexion à {ip} demandée...")
+    worker.connect_robot(ip)
 
 def disconnect():
-    comm.RobotWSClient.disconnect()
+    worker.disconnect_robot()
+    dxf.add_text(window, "Déconnexion demandée...")
     print("disconnect")
+
+# Callbacks QThread
+def on_connected(success):
+    if success:
+        dxf.add_text(window, "Connecté à l'ESP32 avec succès !")
+    else:
+        dxf.add_text(window, "Erreur lors de la connexion.")
+
+def on_status_received(data):
+    global tool_raised
+    
+    # 1. Mise à jour de la visualisation du jumeau numérique (les angles réels)
+    if 'theta1' in data:
+        animator.setAngle(-data['theta1'])
+    if 'theta2' in data:
+        animator_elbow.setAngle(-data['theta2'])
+
+    # 2. Mise à jour du retour utilisateur des coordonnées
+    if 'x' in data and 'y' in data:
+        # Quand le bras n'est pas en mouvement (ou si on veut un affichage temps réel)
+        x_reel = data['x']
+        y_reel = data['y']
+        text = f"Effecteur réel : ({x_reel:.1f}, {y_reel:.1f})"
+        if 'isMoving' in data and data['isMoving']:
+            text += " [En mouvement...]"
+        elif not data.get('isMoving', False):
+            # Recalibrer la cible locale si inactif pour ne pas "sauter" un pas au clic suivant
+            tool_pos.x = x_reel
+            tool_pos.y = -y_reel
+        dxf.add_text(window, text)
+
+    # 3. État de l'outil
+    if 'tool' in data:
+        tool_raised = not data['tool']
+
+def on_error(err_msg):
+    dxf.add_text(window, f"⚠️ Erreur WS : {err_msg}")
 
 def toggle_connection():
     connection_panel.setHidden(not connection_panel.isHidden())
@@ -409,26 +443,32 @@ if __name__ == "__main__":
     control_panel = window.ControlContainer
     control_panel.setHidden(True)
 
+    # Lancement du Worker PyQt
+    worker = comm.RobotWorker()
+    worker.connected_signal.connect(on_connected)
+    worker.status_received_signal.connect(on_status_received)
+    worker.error_signal.connect(on_error)
+    worker.start()  # Démarre la boucle asyncio en fond
 
-    client = comm.RobotWSClient()
-    
     # initialisation des éléments de l'interface
     window.graphicsView.setDragMode(QtWidgets.QGraphicsView.DragMode.NoDrag)
     window.progressBar.setValue(0)
-    
     
     # --- forcer l'entrée des lineEdit 
     enforce_float_only(window.angSpeedEdit)
     enforce_float_only(window.linSpeedEdit)
     
-    
-    
     titlebar_drag = TitleBarDrag(window, window.headerContainer)
-
 
     # Initialize graphic items
     connect_buttons()
     connect_line_edits()
 
     window.show()
-    sys.exit(app.exec())
+    exit_code = app.exec()
+    
+    # Fermeture propre
+    worker.disconnect_robot()
+    worker.quit()
+    worker.wait()
+    sys.exit(exit_code)

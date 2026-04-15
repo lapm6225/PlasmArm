@@ -3,6 +3,7 @@ import json
 import sys
 import time
 from typing import Optional
+from PyQt6.QtCore import QThread, pyqtSignal
 
 try:
     import websockets
@@ -64,19 +65,20 @@ class RobotWSClient:
         self.stream_done = asyncio.Event()
         self._last_progress_time = 0.0  # Pour le watchdog
 
-    async def connect(self, ip: str):
+    async def connect(self, ip: str, timeout: float = 5.0):
         """Se connecter au WebSocket de l'ESP32."""
         self.ip = ip
         uri = f"ws://{ip}:{WS_PORT}{WS_PATH}"
         print(f"  Connexion à {uri}...")
         try:
-            self.ws = await websockets.connect(
-                uri,
-                # Ping désactivé: ESPAsyncWebServer ne gère pas bien les pings
-                # sous charge. Les STATUS messages servent de heartbeat.
-                ping_interval=None,
-                close_timeout=5,
-                max_size=2**20,  # 1 MB pour les gros messages
+            self.ws = await asyncio.wait_for(
+                websockets.connect(
+                    uri,
+                    ping_interval=None,
+                    ping_timeout=None,
+                    max_size=2**20,  # 1 MB pour les gros messages
+                ),
+                timeout=timeout
             )
             self.connected = True
             # Réinitialiser les compteurs à chaque connexion
@@ -84,6 +86,10 @@ class RobotWSClient:
             self.cmd_free = 30
             print(f"  ✅ Connecté à {uri}")
             return True
+        except asyncio.TimeoutError:
+            print(f"  ❌ Échec de connexion: Délai {timeout}s dépassé. Le robot n'est pas prêt ou IP incorrecte.")
+            self.connected = False
+            return False
         except Exception as e:
             print(f"  ❌ Échec de connexion: {e}")
             self.connected = False
@@ -341,66 +347,86 @@ class RobotWSClient:
         finally:
             self.streaming = False
             self.stream_done.set()
-    ###
-    ### Fonction pour l'interface
-    ###
-    # --- Connect ---
-    async def connect_ui(self, ip):
-        IP = ip if len(ip) > 1 else DEFAULT_IP
-        if self.connected:
-            await self.disconnect()
-            if receiver_task:
-                receiver_task.cancel()
-                try:
-                    await receiver_task
-                except asyncio.CancelledError:
-                    pass
-        if await self.connect(IP):
-            receiver_task = asyncio.create_task(self.receiver_loop())
+    # ────────────────────────────────────────────────────────────────────
+    # Ajout pour PyQt
+    # ────────────────────────────────────────────────────────────────────
+    def get_loop(self):
+        return asyncio.get_running_loop()
 
-    # --- disconnect ---
-    async def disconnect_ui(self):
-        if receiver_task:
-            receiver_task.cancel()
-            try:
-                await receiver_task
-            except asyncio.CancelledError:
-                pass
-            receiver_task = None
-        await self.disconnect()
 
-    # --- Go Home ---
-    async def go_home_ui(self):
-        await self.send_home()
+# ============================================================================
+# QThread Robot Worker pour PyQt
+# ============================================================================
+class RobotWorker(QThread):
+    connected_signal = pyqtSignal(bool)
+    status_received_signal = pyqtSignal(dict)
+    error_signal = pyqtSignal(str)
 
-    # --- Move ---
-    async def move(self,x,y,speed):
-        z = 0.0
-        await self.send_move(x, y, z, speed)
+    def __init__(self):
+        super().__init__()
+        self.client = RobotWSClient()
+        self.loop = None
+        self._ip_to_connect = None
+        self._disconnect_requested = False
 
-    # --- tool ---
-    async def tool(self,up: bool):
-        state = up
-        z = 0.0
-        await self.send_tool(state, z)
+    def run(self):
+        """Démarre la boucle d'événements asyncio dans le thread."""
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
+        
+        # Lance la tâche de surveillance principale
+        self.loop.run_until_complete(self._main_task())
+        self.loop.close()
 
-    # --- Stop ---
-    async def stop(self):
-        await self.send_stop()
+    async def _main_task(self):
+        """Tâche principale qui surveille la connexion et forward les statuts."""
+        while True:
+            if self._disconnect_requested:
+                if self.client.connected:
+                    await self.client.disconnect()
+                self._disconnect_requested = False
 
-    # --- Change speed ---
-    async def changespeed(self,speed):
-        current_speed = float(speed)
-        await self.send_set_speed(current_speed)
-    
-    # --- Load DXF file ---
-    async def load_DXF(self, file):
-        filename = file  # Support espaces dans le nom
-        commands = load_dxf_commands(filename)
-        if commands:
-            print('ok')
-        await self.stream_commands(commands)
+            if self._ip_to_connect:
+                ip = self._ip_to_connect
+                self._ip_to_connect = None
+                
+                success = await self.client.connect(ip)
+                self.connected_signal.emit(success)
+                
+                if success:
+                    # Lancer la boucle de réception si connecté
+                    asyncio.create_task(self.client.receiver_loop())
 
+            # Diffuser le status régulièrement s'il a changé
+            if self.client.connected:
+                # Dans un vrai système, on pourrait injecter un callback dans RobotWSClient
+                # pour émettre le signal à chaque réception de STATUS. Ici on poll ou
+                # on modifie légèrement le _handle_message.
+                # Pour garder les choses simples, on passe le statut stocké.
+                if hasattr(self.client, 'last_status') and self.client.last_status:
+                    self.status_received_signal.emit(self.client.last_status)
+                    # clear status so we don't emit continuously
+                    # self.client.last_status = {}  # Optional
+
+            await asyncio.sleep(0.05)
+
+    def connect_robot(self, ip):
+        """Demande la connexion (thread-safe)."""
+        self._ip_to_connect = ip if len(ip) > 1 else DEFAULT_IP
+
+    def disconnect_robot(self):
+        """Demande la déconnexion (thread-safe)."""
+        self._disconnect_requested = True
+
+    def send_cmd(self, cmd_dict):
+        """Envoie une commande au robot (thread-safe)."""
+        if self.loop and self.client.connected:
+            asyncio.run_coroutine_threadsafe(self.client.send_json(cmd_dict), self.loop)
+
+    def stream_commands(self, commands):
+        """Lance le flux de commandes DXF (thread-safe)."""
+        if self.loop and self.client.connected:
+            asyncio.run_coroutine_threadsafe(self.client.stream_commands(commands), self.loop)
 
 # ============================================================================
 # Chargement DXF
@@ -419,33 +445,7 @@ def load_dxf_commands(filename: str) -> list:
         commands = parser.parse()
         stats = parser.get_stats(commands)
         print(f"\n  📂 DXF chargé: {filename}")
-        print(f"     Commandes:  {stats['total']}")
-        print(f"     MOVE_TO:    {stats['move_to']}")
-        print(f"     TOOL:       {stats['tool']}")
-        print(f"     Entités:    {stats['entities']}")
-        bbox = stats['bbox']
-        print(f"     BBox:       X[{bbox['x_min']:.1f}, {bbox['x_max']:.1f}] "
-              f"Y[{bbox['y_min']:.1f}, {bbox['y_max']:.1f}]")
-
-        # Aperçu
-        parser.print_preview(commands, max_lines=10)
         return commands
-    except FileNotFoundError:
-        print(f"  ❌ Fichier non trouvé: {filename}")
-        return []
     except Exception as e:
         print(f"  ❌ Erreur de parsing DXF: {e}")
-        return []
-
-
-###
-###ajouter aux definitions
-###
-    client = RobotWSClient()
-    ###
-    ### Inutile?
-    ###
-    receiver_task: Optional[asyncio.Task] = None
-    loop = asyncio.get_event_loop()
-    ainput = AsyncInput(loop)
-    current_speed = DEFAULT_SPEED
+        return []

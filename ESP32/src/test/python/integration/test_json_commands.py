@@ -80,7 +80,7 @@ async def run_test(ip: str):
 
     ]
 
-    commands=commands3
+    commands=commands2
     """
         {"type": "MOVE_TO", "x": 200, "y": 200, "speed": 100},
         {"type": "TOOL", "state": "DOWN"},
