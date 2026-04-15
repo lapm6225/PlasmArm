@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1138</width>
-    <height>594</height>
+    <height>603</height>
    </rect>
   </property>
   <property name="font">
@@ -820,7 +820,7 @@ QLineEdit::placeholder {
            </widget>
           </item>
           <item>
-           <widget class="QLineEdit" name="lineEdit">
+           <widget class="QLineEdit" name="ipEdit">
             <property name="maximumSize">
              <size>
               <width>100</width>
@@ -828,9 +828,7 @@ QLineEdit::placeholder {
              </size>
             </property>
             <property name="styleSheet">
-             <string notr="true">
-
-</string>
+             <string notr="true"/>
             </property>
            </widget>
           </item>
@@ -1616,6 +1614,9 @@ QLineEdit::placeholder {
                           <width>180</width>
                           <height>25</height>
                          </size>
+                        </property>
+                        <property name="inputMethodHints">
+                         <set>Qt::ImhNone</set>
                         </property>
                         <property name="text">
                          <string>1</string>
