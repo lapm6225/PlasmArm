@@ -20,7 +20,7 @@ def add_text(window,text):
 def func_DXF(window, scene):
     doc = ezdxf.new()
     msp = doc.modelspace()
-    origin_bras = QPointF(500, 450)
+    origin_bras = QPointF(550, 450)
     if hasattr(window, "dxf_preview"):
         scene.removeItem(window.dxf_preview)
     window.dxf_preview = scene.createItemGroup([])
@@ -40,7 +40,7 @@ def func_DXF(window, scene):
                 msp.add_line((p1_robot.x(), -p1_robot.y()), (p2_robot.x(), -p2_robot.y()))
                 x1, y1 = p1_robot.x(), p1_robot.y()
                 x2, y2 = p2_robot.x(), p2_robot.y()
-                line = QGraphicsLineItem(500+x1, 450+y1, 500+x2, 450+y2)
+                line = QGraphicsLineItem(550+x1, 450+y1, 550+x2, 450+y2)
                 line.setPen(pen)
                 line.setZValue(-10)  # derrière
                 line.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, False)

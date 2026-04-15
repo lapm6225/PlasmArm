@@ -31,8 +31,8 @@ tool_raised = True # true == levé / false == baissé
 
 # --- Données de dimension des bras --- 
 Arm = namedtuple("Arm", ["length", "width"])
-bicep = Arm(220, 35)
-forearm = Arm(220, 54)
+bicep = Arm(216, 35)
+forearm = Arm(214, 54)
 
 # --- Données de position ---
 Point = namedtuple("Position", ["x", "y"])
@@ -40,39 +40,40 @@ tool_pos = Position(forearm.length+bicep.length, 0)
 origin = Point(550, 450)
 
 # --- Verify that the commands are in the available range ---
-def limit(shoulder, elbow):
-    # Max angle of the 2e arm
-    if elbow > 150 or elbow <- 150:
-        dxf.add_text(window, "Max elbow angle reached")
-        return False
+# def limit(shoulder, elbow):
+#     # Max angle of the 2e arm
+#     if elbow > 150 or elbow <- 150:
+#         dxf.add_text(window, "Max elbow angle reached")
+#         return False
     
-    # Max angle of the 1st arm
-    if shoulder > 0 or shoulder < -180:
-        dxf.add_text(window, "Max elbow angle reached")
-        return False
+#     # Max angle of the 1st arm
+#     if shoulder > 0 or shoulder < -180:
+#         dxf.add_text(window, "Max elbow angle reached")
+#         return False
     
-    x = bicep.length*math.cos(shoulder*math.pi/180)+forearm.length*math.cos((shoulder+elbow)*math.pi/180)
-    y = bicep.length*math.sin(shoulder*math.pi/180)+forearm.length*math.sin((shoulder+elbow)*math.pi/180)
+#     x = bicep.length*math.cos(shoulder*math.pi/180)+forearm.length*math.cos((shoulder+elbow)*math.pi/180)
+#     y = bicep.length*math.sin(shoulder*math.pi/180)+forearm.length*math.sin((shoulder+elbow)*math.pi/180)
 
-    # Max range of the arm
-    if math.sqrt(pow(x,2)+pow(y,2))>bicep.length+forearm.length+0.1:
-        dxf.add_text(window, "Out of bounds")
-        return False
+#     # Max range of the arm
+#     if math.sqrt(pow(x,2)+pow(y,2))>bicep.length+forearm.length+0.1:
+#         dxf.add_text(window, "Out of bounds")
+#         return False
     
-    # Limitation of the workspace (demi circle)
-    if y > 0:
-        dxf.add_text(window, "Out of range in Y axis")
-        print("test")
-        return False
+#     # Limitation of the workspace (demi circle)
+#     if y > 0:
+#         dxf.add_text(window, "Out of range in Y axis")
+#         print("test")
+#         return False
     
-    # Actualise the tool position
-    else:
-        x=round(x,2)
-        y=round(y,2)
-        # Debug prints
-        text = f"Position de l'effecteur: ({x}, {-y})"
-        dxf.add_text(window, text )
-        return True
+#     # Actualise the tool position
+#     else:
+#         x=round(x,2)
+#         y=round(y,2)
+#         # Debug prints
+#         text = f"Position de l'effecteur: ({x}, {-y})"
+#         dxf.add_text(window, text )
+#         return True
+
 
 
 # Open a help window with instruction on how to use the program
@@ -117,12 +118,6 @@ def enforce_float_only(line_edit: QLineEdit):
 
 # --- Position "maison" ---
 def go_home():
-    global shoulder_angle
-    global elbow_angle
-    shoulder_angle =0
-    elbow_angle = -154
-    #animator.setAngle(shoulder_angle)
-    #animator_elbow.setAngle(elbow_angle)
     worker.send_cmd({"type": "HOME"})
 #-----------------------------
 
@@ -189,33 +184,33 @@ def move_left():
     send_target_move()
 
 # --- mouvement angulaire selon la vitesse angulaire---
-def shoulder_clockwise():
-    global shoulder_angle, angular_speed
-    temp_angle = shoulder_angle + angular_speed
-    if limit(temp_angle,elbow_angle):
-        shoulder_angle= temp_angle
-    #animator.setAngle(-shoulder_angle)
+# def shoulder_clockwise():
+#     global shoulder_angle, angular_speed
+#     temp_angle = shoulder_angle + angular_speed
+#     if limit(temp_angle,elbow_angle):
+#         shoulder_angle= temp_angle
+#     #animator.setAngle(-shoulder_angle)
 
-def shoulder_counterclockwise():
-    global shoulder_angle, angular_speed
-    temp_angle = shoulder_angle - angular_speed
-    if limit(temp_angle,elbow_angle):
-        shoulder_angle= temp_angle
-    #animator.setAngle(-shoulder_angle)
+# def shoulder_counterclockwise():
+#     global shoulder_angle, angular_speed
+#     temp_angle = shoulder_angle - angular_speed
+#     if limit(temp_angle,elbow_angle):
+#         shoulder_angle= temp_angle
+#     #animator.setAngle(-shoulder_angle)
 
-def elbow_clockwise():
-    global elbow_angle, angular_speed
-    temp_angle = elbow_angle + angular_speed
-    if limit(shoulder_angle,temp_angle):
-        elbow_angle= temp_angle
-    #animator_elbow.setAngle(-elbow_angle)
+# def elbow_clockwise():
+#     global elbow_angle, angular_speed
+#     temp_angle = elbow_angle + angular_speed
+#     if limit(shoulder_angle,temp_angle):
+#         elbow_angle= temp_angle
+#     #animator_elbow.setAngle(-elbow_angle)
 
-def elbow_counterclockwise():
-    global elbow_angle, angular_speed
-    temp_angle = elbow_angle - angular_speed
-    if limit(shoulder_angle,temp_angle):
-        elbow_angle= temp_angle
-    #animator_elbow.setAngle(-elbow_angle)
+# def elbow_counterclockwise():
+#     global elbow_angle, angular_speed
+#     temp_angle = elbow_angle - angular_speed
+#     if limit(shoulder_angle,temp_angle):
+#         elbow_angle= temp_angle
+#     #animator_elbow.setAngle(-elbow_angle)
 #------------------------------------------------------------------------
 
 # --- Imprimer ---
@@ -231,8 +226,10 @@ def func_print():
 
 # --- Arrêt ---
 def func_stop():
+
     worker.trigger_emergency_stop()
     dxf.add_text(window, "Arrêt de la découpe (STOP command envoyé)")
+
 # -------------
 
 
@@ -325,7 +322,6 @@ def toggle_connection():
     connection_panel.setHidden(not connection_panel.isHidden())
     auto_fit.schedule_refit()
 
-
 def toggle_control():
     control_panel.setHidden(not control_panel.isHidden())
     auto_fit.schedule_refit()
@@ -336,9 +332,6 @@ def manual():
 def calibration():
     worker.send_cmd({"type": "SAVE_HOME"})
     worker.send_cmd({"type": "HOME"})
-
-    
-
 
 class TitleBarDrag(QObject):
     def __init__(self, window, header):
@@ -379,7 +372,7 @@ def connect_buttons():
     window.dxfBtn.clicked.connect(func_DXF) # Generate a dxf file centered with the base of the robot
 
     window.startBtn.clicked.connect(func_print) # Start or resume the print
-    window.pauseBtn.clicked.connect(func_stop) # pause the print
+    #window.pauseBtn.clicked.connect(func_stop) # pause the print
     window.stopBtn.clicked.connect(func_stop) # stop and cancel the print
 
     window.helpBtn.clicked.connect(open_help) # Opens a help dialog
@@ -390,10 +383,10 @@ def connect_buttons():
 
     # Controls menu buttons
     # --- Angular motion buttons
-    window.A1cBtn.clicked.connect(shoulder_clockwise)
-    window.A1ccBtn.clicked.connect(shoulder_counterclockwise)
-    window.A2cBtn.clicked.connect(elbow_clockwise)
-    window.A2ccBtn.clicked.connect(elbow_counterclockwise)
+    # window.A1cBtn.clicked.connect(shoulder_clockwise)
+    # window.A1ccBtn.clicked.connect(shoulder_counterclockwise)
+    # window.A2cBtn.clicked.connect(elbow_clockwise)
+    # window.A2ccBtn.clicked.connect(elbow_counterclockwise)
 
      # --- Linear motion buttons
     window.upBtn.clicked.connect(move_forward)
