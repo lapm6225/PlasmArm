@@ -103,7 +103,7 @@ Agile methodology with incremental feature delivery throughout the project.
 
 ### 3D Printed Parts
 ![PlasmArm Robot](Mechanic/Mise%20en%20plan%20assemblage%20complet%20explosé.png)
-[TO BE ADDED: List of STL files and print settings]
+- [STL Printing Files](Mechanic/STL%20Printing%20Files)
 
 <!--
 Print all STL files from the `STL/` folder with recommended settings:
