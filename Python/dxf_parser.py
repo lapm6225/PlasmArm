@@ -118,27 +118,30 @@ class DxfParser:
     def _generate_commands(self, shapes: List[List[Tuple[float, float]]]) -> List[dict]:
         """Generate robot commands from extracted shapes."""
         commands = []
-        
+        last_x=0
+        last_y=0
         for shape in shapes:
             if len(shape) < 2:
                 continue
-            
+            if last_x!=round(start[0], 2) or last_y!=round(start[1], 2):
+                commands.append({
+                    "type": "TOOL",
+                    "state": "UP",
+                })
+
             # Travel to start of shape (tool off, Z up)
             start = shape[0]
             commands.append({
                 "type": "MOVE_TO",
                 "x": round(start[0], 2),
                 "y": round(start[1], 2),
-                "z": self.z_travel,
                 "speed": self.travel_speed,
-                "tool": False
             })
             
             # Tool on at start
             commands.append({
                 "type": "TOOL",
-                "state": True,
-                "z": self.z_cut
+                "state": "DOWN",
             })
             
             # Cut through all remaining vertices
@@ -147,18 +150,12 @@ class DxfParser:
                     "type": "MOVE_TO",
                     "x": round(point[0], 2),
                     "y": round(point[1], 2),
-                    "z": self.z_cut,
                     "speed": self.cut_speed,
-                    "tool": True
                 })
+            last_x=round(point[0], 2)
+            last_y=round(point[1], 2)
             
-            # Tool off at end
-            commands.append({
-                "type": "TOOL",
-                "state": False,
-                "z": self.z_travel
-            })
-        
+ 
         return commands
 
     def get_stats(self, commands: List[dict]) -> dict:
