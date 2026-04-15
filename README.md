@@ -99,7 +99,17 @@ Agile methodology with incremental feature delivery throughout the project.
 
 ### Mechanical Assembly Instructions
 
+**Sub-assembly 4: Arm 2**
 
+4a) Pass the timing belt through the second arm and wrap it around the 2 pulleys (3.3 & 7), then tighten the timing belt by adjusting and fixing the distance of the Dynamixel servomotor (4)
+
+4b) Press fit the 2 bearings (21) on each side of the second arm (3.2)
+
+4c) Connect the second arm under the first arm by passing the D-shaft (2) through both parts
+
+4d) Lock the shaft (2) and the arms with two set screw collars (21) on each end of the shaft
+
+4e) Glue the cable management attachment (16) to the second arm (3.2) as seen in the exploded view diagram
 
 **Sub-assembly 5: End Effector**
 
@@ -137,7 +147,7 @@ Agile methodology with incremental feature delivery throughout the project.
 
 6e) Press fit the 4 C-clamp plates (8.4) at each end of the bolts 
 
-6f) Press fit the assembled C-clamp in the base's triangular slot
+6f) Press fit the assembled C-clamp (8) in the base's triangular slot
 
 ### Mechanical Parts
 ![PlasmArm Robot](Mechanic/Mise%20en%20plan%20assemblage%20complet%20explosé.png)
