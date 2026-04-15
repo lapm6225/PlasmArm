@@ -137,6 +137,8 @@ Agile methodology with incremental feature delivery throughout the project.
 
 6e) Press fit the 4 C-clamp plates (8.4) at each end of the bolts 
 
+6f) Press fit the assembled C-clamp in the base's triangular slot
+
 ### Mechanical Parts
 ![PlasmArm Robot](Mechanic/Mise%20en%20plan%20assemblage%20complet%20explosé.png)
 - [STL Printing Files](Mechanic/STL%20Printing%20Files)
