@@ -14,8 +14,8 @@
 #define WIFI_AP_PASSWORD "12345678"  // Must be at least 8 characters
 
 // Station Mode Settings (When WIFI_AP_MODE is false)
-#define WIFI_STA_SSID "204-2381-Belvedere"
-#define WIFI_STA_PASSWORD "AmandeRose92"
+#define WIFI_STA_SSID "nom du mot du wifi"
+#define WIFI_STA_PASSWORD "mot de passe"
 
 #define WIFI_TIMEOUT_MS 10000
 
@@ -43,9 +43,7 @@
 //               (BASE)
 //
 #define WORKSPACE_R_MAX (ARM_LENGTH_1 + ARM_LENGTH_2)  // max reach
-#define WORKSPACE_R_MIN \
-    ARM_LENGTH_1 -      \
-        std::cos(THETA2_MAX) * ARM_LENGTH_2  // Minimum reach - prevents arm folding on itself
+#define WORKSPACE_R_MIN ARM_LENGTH_1 - std::cos(THETA2_MAX) * ARM_LENGTH_2  // Minimum reach - prevents arm folding on itself
 
 // Home position: arm fully extended upward (+Y direction)
 #define HOME_X WORKSPACE_R_MAX
