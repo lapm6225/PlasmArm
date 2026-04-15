@@ -869,6 +869,7 @@ QLineEdit::placeholder {
          <property name="frameShadow">
           <enum>QFrame::Raised</enum>
          </property>
+         <layout class="QHBoxLayout" name="horizontalLayout_10"/>
         </widget>
        </item>
        <item>
@@ -1882,7 +1883,7 @@ QLineEdit::placeholder {
                  </widget>
                 </item>
                 <item>
-                 <widget class="QPushButton" name="manuelBtn">
+                 <widget class="QPushButton" name="manualBtn">
                   <property name="font">
                    <font>
                     <pointsize>16</pointsize>
@@ -1897,6 +1898,20 @@ QLineEdit::placeholder {
                   </property>
                   <property name="text">
                    <string>M</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="calibrateBtn">
+                  <property name="toolTip">
+                   <string>Calibration</string>
+                  </property>
+                  <property name="text">
+                   <string/>
+                  </property>
+                  <property name="icon">
+                   <iconset resource="ressources.qrc">
+                    <normaloff>:/icons/icons/anchor.svg</normaloff>:/icons/icons/anchor.svg</iconset>
                   </property>
                  </widget>
                 </item>

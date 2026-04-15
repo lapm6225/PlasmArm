@@ -31,8 +31,8 @@ tool_raised = True # true == levé / false == baissé
 
 # --- Données de dimension des bras --- 
 Arm = namedtuple("Arm", ["length", "width"])
-bicep = Arm(222, 35)
-forearm = Arm(216, 54)
+bicep = Arm(220, 35)
+forearm = Arm(220, 54)
 
 # --- Données de position ---
 Point = namedtuple("Position", ["x", "y"])
@@ -42,7 +42,7 @@ origin = Point(550, 450)
 # --- Verify that the commands are in the available range ---
 def limit(shoulder, elbow):
     # Max angle of the 2e arm
-    if elbow > 155 or elbow <- 155:
+    if elbow > 150 or elbow <- 150:
         dxf.add_text(window, "Max elbow angle reached")
         return False
     
@@ -330,6 +330,14 @@ def toggle_control():
     control_panel.setHidden(not control_panel.isHidden())
     auto_fit.schedule_refit()
 
+def manual():
+    worker.send_cmd({"type": "SET_HOME"})
+
+def calibration():
+    worker.send_cmd({"type": "SAVE_HOME"})
+    worker.send_cmd({"type": "HOME"})
+
+    
 
 
 class TitleBarDrag(QObject):
@@ -405,6 +413,9 @@ def connect_buttons():
     # Right Menu buttons
     window.jogBtn.clicked.connect(toggle_control)
     window.homeBtn.clicked.connect(go_home)
+    window.manualBtn.clicked.connect(manual)
+    window.calibrateBtn.clicked.connect(calibration)
+
 
 def connect_line_edits():
      # ------- speed controls ---

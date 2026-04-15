@@ -9,7 +9,7 @@ import math
 class HelpDialog(QDialog):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Aide")
+        self.setWindowTitle("Help")
         self.setMinimumWidth(400)
 
         self.setStyleSheet("""
@@ -35,19 +35,39 @@ class HelpDialog(QDialog):
         layout = QVBoxLayout()
 
         help_text = """
-        <h2>Aide de l'application</h2>
-        <p>Voici quelques informations utiles :</p>
+        <h2>Help Menu</h2>
+        <p>Usefull informations :</p>
         <ul>
-            <li>Utilisez le menu <b>Fichier</b> pour ouvrir ou sauvegarder.</li>
-            <li>Le bouton <b>Exécuter</b> lance le traitement.</li>
-            <li>Consultez la documentation pour plus de détails.</li>
+            <li>Use the <b>Connection & status</b> to open a connection menu.</li>
+            <li>Use the  <b>Load DXF</b> button to import a drawing.</li>
+            <ul>
+                <li>Move the drawing within the red limits.</li>
+            </ul>
+            <li>Press on <b>Generate</b> once the drawing is where you desire.</li>
+            <ul>
+                <li>The drawing becomes green if it is in a valid position</li>
+            </ul>
+            <li>Use the <b>Delete</b> button to delete the drawing generated or not</li>
+            <li>Press on <b>Play</b> to start the printing process.</li>
+            <li>Press on the <b>Stop</b> and cancel button to completely stop the print.</li>
+
+            
+            <li>Press on the <b>Control</b> button to open a control menu.</li>
+            <ul>
+                <li><b>Tool controls</b></li>
+                <li><b>Linear Controls</b></li>
+                <li><b>Angular conrols</b></li>
+            </ul>
+            <li>Press on the <b>Home</b> button to return the arm to its initial position.</li>
+            <li>Press on the <b>M</b> button to manualy move the arm. Useful to calibrate the arm.</li>
+
         </ul>
         """
 
         label = QLabel(help_text)
         label.setWordWrap(True)
 
-        close_btn = QPushButton("Fermer")
+        close_btn = QPushButton("Close")
         close_btn.clicked.connect(self.close)
 
         layout.addWidget(label)
