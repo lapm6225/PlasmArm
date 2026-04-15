@@ -42,15 +42,29 @@ int SG90::getAngle(){
 }
 
 bool SG90::stepDown(float stepDeg) {
-    if (digitalRead(_switchPin) == LOW || _angle <= 0) {
+    if (digitalRead(_switchPin) == LOW) {
+        // Switch was pressed during the physical movement of the last step.
+        // Back off slightly to relieve pressure on the servo and prevent buzzing.
+        write(_angle + 2);
         return true;
     }
+    if (_angle <= 0) {
+        return true;
+    }
+    
     int stepInt = static_cast<int>(round(stepDeg));
     int next = _angle - stepInt;
     if (next < 0)
         next = 0;
     write(next);
-    return (digitalRead(_switchPin) == LOW || _angle == 0);
+    
+    // Check if the switch triggered instantly
+    if (digitalRead(_switchPin) == LOW) {
+        write(_angle + 2);
+        return true;
+    }
+    
+    return (_angle == 0);
 }
 
 bool SG90::stepUp(float stepDeg, float targetAngle) {

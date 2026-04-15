@@ -47,7 +47,8 @@ class HelpDialog(QDialog):
             <ul>
                 <li>The drawing becomes green if it is in a valid position</li>
             </ul>
-            <li>Use the <b>Delete</b> button to delete the drawing generated or not</li>
+            <li>Use the <b>Delete</b> button to delete the drawing.</li>
+            <li>Press on <b>Play</b> to start the printing process.</li>
             <li>Press on <b>Play</b> to start the printing process.</li>
             <li>Press on the <b>Stop</b> and cancel button to completely stop the print.</li>
 

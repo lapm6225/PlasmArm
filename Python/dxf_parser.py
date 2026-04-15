@@ -156,7 +156,10 @@ class DxfParser:
             last_x=round(point[0], 2)
             last_y=round(point[1], 2)
             
- 
+        commands.append({
+            "type": "TOOL",
+            "state": "UP",
+        })
         return commands
 
     def get_stats(self, commands: List[dict]) -> dict:

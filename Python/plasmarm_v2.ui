@@ -830,6 +830,9 @@ QLineEdit::placeholder {
             <property name="styleSheet">
              <string notr="true"/>
             </property>
+            <property name="text">
+             <string>192.168.4.1</string>
+            </property>
            </widget>
           </item>
          </layout>
