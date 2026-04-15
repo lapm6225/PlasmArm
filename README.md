@@ -359,7 +359,7 @@ If using Station mode:
 
 ### 3. Send Commands
 
-Use the web interface or Python GUI to:
+Use the Python GUI to:
 - Move the arm to specific coordinates (jog control)
 - Import and draw DXF files
 - Control the tool/end effector (pen up/down)
@@ -490,9 +490,9 @@ Using law of cosines and atan2
 
 ---
 
-## Web Interface
-
-The embedded web interface provides:
+## PyQt Interface Walktrough
+![PlasmArm Robot](Software/GUI_walktrough.png)
+The interface provides:
 
 - **Manual Control**: Move arm to X, Y coordinates
 - **DXF Upload**: Send drawing files to robot (via Python client)

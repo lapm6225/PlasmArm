@@ -83,7 +83,7 @@
 #define TOOL_SWITCH_PIN 32  // pin pour lire l'état du switch de pression
 
 // Tool actuation parameters
-#define TOOL_STEP_DEG 1.0f            // degrees per step (non-blocking speed control)
+#define TOOL_STEP_DEG 0.4f            // degrees per step (non-blocking speed control)
 #define TOOL_ACTUATE_TIMEOUT_MS 5000  // max time for down motion before timeout
 
 // Serial communication with Dynamixels
