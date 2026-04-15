@@ -368,6 +368,7 @@ class RobotWorker(QThread):
         self.loop = None
         self._ip_to_connect = None
         self._disconnect_requested = False
+        self._stop_requested = False
 
     def run(self):
         """Démarre la boucle d'événements asyncio dans le thread."""
@@ -380,7 +381,7 @@ class RobotWorker(QThread):
 
     async def _main_task(self):
         """Tâche principale qui surveille la connexion et forward les statuts."""
-        while True:
+        while not self._stop_requested:
             if self._disconnect_requested:
                 if self.client.connected:
                     await self.client.disconnect()
@@ -410,6 +411,10 @@ class RobotWorker(QThread):
 
             await asyncio.sleep(0.05)
 
+        # Sortie de boucle : on s'assure de se déconnecter
+        if self.client.connected:
+            await self.client.disconnect()
+
     def connect_robot(self, ip):
         """Demande la connexion (thread-safe)."""
         self._ip_to_connect = ip if len(ip) > 1 else DEFAULT_IP
@@ -417,6 +422,10 @@ class RobotWorker(QThread):
     def disconnect_robot(self):
         """Demande la déconnexion (thread-safe)."""
         self._disconnect_requested = True
+
+    def stop(self):
+        """Arrête la boucle du thread pour fermer proprement."""
+        self._stop_requested = True
 
     def send_cmd(self, cmd_dict):
         """Envoie une commande au robot (thread-safe)."""

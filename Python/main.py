@@ -223,9 +223,9 @@ def func_print():
     if hasattr(window, "dxf_preview"):
         dxf.add_text(window, "Début de la découpe")
         cut=DxfParser("export_robot.dxf")
-        command = cut.parse()
-        cut.print_preview(command)
-        #async load_DXF("export_robot.dxf"):
+        commands = cut.parse()
+        cut.print_preview(commands)
+        worker.stream_commands(commands)
     
 # ----------------
 
@@ -378,7 +378,7 @@ def connect_buttons():
 
     # Connect Menu buttons
     window.connectBtn.clicked.connect(connect)
-    # window.disconnectBtn.clicked.disconnect()
+    window.disconnectBtn.clicked.connect(disconnect)
 
     # Controls menu buttons
     # --- Angular motion buttons
@@ -468,7 +468,7 @@ if __name__ == "__main__":
     exit_code = app.exec()
     
     # Fermeture propre
-    worker.disconnect_robot()
+    worker.stop()
     worker.quit()
     worker.wait()
     sys.exit(exit_code)
