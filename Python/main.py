@@ -1,7 +1,7 @@
-from PyQt6 import QtWidgets, uic
+from PyQt6 import QtWidgets, uic, QtCore
 from PyQt6.QtWidgets import QGraphicsScene, QLineEdit, QGraphicsPixmapItem, QGraphicsView
 
-from PyQt6.QtGui import QPixmap
+from PyQt6.QtGui import QPixmap, QIcon
 from PyQt6.QtCore import  Qt, QObject, QEvent, Qt, QTimer
 from collections import namedtuple
 
@@ -318,6 +318,8 @@ def connect():
 def disconnect():
     worker.disconnect_robot()
     dxf.add_text(window, "Déconnexion demandée...")
+    window.connectPanelBtn.setChecked(False)
+    window.connectPanelBtn.setIcon(QIcon(":/icons/icons/wifi-off.svg"))
     print("disconnect")
 
 def toggle_click_move():
@@ -329,8 +331,14 @@ def toggle_click_move():
 # Callbacks QThread
 def on_connected(success):
     if success:
+        window.connectPanelBtn.setChecked(True)
+        window.connectPanelBtn.setIcon(QIcon(":/icons/icons/wifi.svg"))
+
         dxf.add_text(window, "Connecté à l'ESP32 avec succès !")
     else:
+        window.connectPanelBtn.setChecked(False)
+        window.connectPanelBtn.setIcon(QIcon(":/icons/icons/wifi-off.svg"))
+
         dxf.add_text(window, "Erreur lors de la connexion.")
 
 def on_status_received(data):
@@ -473,6 +481,16 @@ if __name__ == "__main__":
                           
                           )
     
+    window.connectPanelBtn.setCheckable(True)
+    window.connectPanelBtn.setIconSize(QtCore.QSize(24, 24))
+    window.connectPanelBtn.setIcon(QIcon(":/icons/icons/wifi-off.svg"))
+
+    print("wifi-off:", QPixmap(":/icons/icons/wifi-off.svg").isNull())
+    print("wifi:", QPixmap(":/icons/icons/wifi.svg").isNull())
+
+
+
+
     # Replace the Designer-created graphicsView with our clickable subclass
     old_view = window.graphicsView
     click_view = ClickableGraphicsView(old_view.parent())
@@ -532,6 +550,10 @@ if __name__ == "__main__":
 
     window.show()
     exit_code = app.exec()
+    from PyQt6.QtGui import QPixmap
+    print("wifi-off:", QPixmap(":/icons/wifi-off.svg").isNull())
+    print("wifi:", QPixmap(":/icons/wifi.svg").isNull())
+
     
     # Fermeture propre
     worker.stop()

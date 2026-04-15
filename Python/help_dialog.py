@@ -1,6 +1,7 @@
 from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QPushButton
 from PyQt6.QtGui import QPixmap
-
+from PyQt6.QtCore import  Qt
+from PyQt6 import QtWidgets
 from collections import namedtuple
 
 import sys
@@ -11,6 +12,10 @@ class HelpDialog(QDialog):
         super().__init__()
         self.setWindowTitle("Help")
         self.setMinimumWidth(400)
+        self.setSizePolicy(QtWidgets.QSizePolicy.Policy.Fixed,
+                   QtWidgets.QSizePolicy.Policy.Fixed)
+        self.adjustSize()
+        self.setFixedHeight(self.height())
 
         self.setStyleSheet("""
             QDialog {
@@ -32,37 +37,44 @@ class HelpDialog(QDialog):
             }
         """)
 
+        
         layout = QVBoxLayout()
+        layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+
+
 
         help_text = """
         <h2>Help Menu</h2>
-        <p>Usefull informations :</p>
+    <p>Useful information:</p>
+    <ul>
+        <li>Use the <b>Connection & Status</b> button to open the connection panel.</li>
+
+        <li>Use the <b>Load DXF</b> button to import a drawing.</li>
         <ul>
-            <li>Use the <b>Connection & status</b> to open a connection menu.</li>
-            <li>Use the  <b>Load DXF</b> button to import a drawing.</li>
-            <ul>
-                <li>Move the drawing within the red limits.</li>
-            </ul>
-            <li>Press on <b>Generate</b> once the drawing is where you desire.</li>
-            <ul>
-                <li>The drawing becomes green if it is in a valid position</li>
-            </ul>
-            <li>Use the <b>Delete</b> button to delete the drawing.</li>
-            <li>Press on <b>Play</b> to start the printing process.</li>
-            <li>Press on <b>Play</b> to start the printing process.</li>
-            <li>Press on the <b>Stop</b> and cancel button to completely stop the print.</li>
-
-            
-            <li>Press on the <b>Control</b> button to open a control menu.</li>
-            <ul>
-                <li><b>Tool controls</b></li>
-                <li><b>Linear Controls</b></li>
-                <li><b>Angular conrols</b></li>
-            </ul>
-            <li>Press on the <b>Home</b> button to return the arm to its initial position.</li>
-            <li>Press on the <b>M</b> button to manualy move the arm. Useful to calibrate the arm.</li>
-
+            <li>Move the drawing within the red boundaries.</li>
         </ul>
+        <li>Press <b>Generate</b> once the drawing is positioned as desired.</li>
+        <ul>
+            <li>The drawing turns green when it is in a valid position.</li>
+        </ul>
+        <li>Use the <b>Delete</b> button to remove the loaded drawing.</li>
+
+        <li>Press <b>Play</b> to start the cutting process.</li>
+        <li>Press <b>Pause</b> to temporarily pause the cutting process.</li>
+        <li>Press the <b>Stop</b> button to completely stop and cancel the cut.</li>
+
+        <li>Press the <b>Control</b> button to open the control panel.</li>
+        <ul>
+            <li><b>Tool Controls</b></li>
+            <li><b>Linear Controls</b></li>
+            <li><b>Angular Controls</b></li>
+        </ul>
+        <li>When the <b>Pen</b> button is toggled, click inside the red area to send the tool to that position.</li>
+        <li>Press the <b>Home</b> button to return the arm to its initial position.</li>
+        <li>Press the <b>M</b> button to manually move the arm. Useful for calibration.</li>
+        <li>Press the <b>Anchor</b> button to define the calibration point while the arm is at its home position. See the GitHub for proper orientation.</li>
+    </ul>
+
         """
 
         label = QLabel(help_text)

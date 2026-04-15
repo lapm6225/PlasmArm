@@ -341,7 +341,7 @@ QLineEdit::placeholder {
                 <string>Connection</string>
                </property>
                <property name="styleSheet">
-                <string notr="true">  </string>
+                <string notr="true"/>
                </property>
                <property name="text">
                 <string>Connection et status</string>
@@ -358,6 +358,9 @@ QLineEdit::placeholder {
                </property>
                <property name="checkable">
                 <bool>true</bool>
+               </property>
+               <property name="checked">
+                <bool>false</bool>
                </property>
               </widget>
              </item>
