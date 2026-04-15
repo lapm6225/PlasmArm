@@ -45,7 +45,7 @@ bool SG90::stepDown(float stepDeg) {
     if (digitalRead(_switchPin) == LOW) {
         // Switch was pressed during the physical movement of the last step.
         // Back off slightly to relieve pressure on the servo and prevent buzzing.
-        write(_angle + 2);
+        write(_angle + 10);
         return true;
     }
     if (_angle <= 0) {
@@ -60,7 +60,7 @@ bool SG90::stepDown(float stepDeg) {
     
     // Check if the switch triggered instantly
     if (digitalRead(_switchPin) == LOW) {
-        write(_angle + 2);
+        write(_angle + 10);
         return true;
     }
     
