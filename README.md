@@ -71,7 +71,7 @@ Agile methodology with incremental feature delivery throughout the project.
 ### Microcontroller
 
 - **ESP32** (esp32doit-devkit-v1 or compatible)
-- USB cable for programming and power
+- USB cable for programming
 
 ### Motors & Actuators
 
@@ -128,7 +128,6 @@ Print all STL files from the `STL/` folder with recommended settings:
 | 10kΩ Resistor | 1 | Pull-up for limit switch |
 | 1N4148 Diode | 1 | Half-duplex UART |
 | M3 Screws | 20+ | Various lengths |
-| M3 Heat Inserts | 10+ | For plastic parts |
 | 608 Bearings | 2+ | For smooth rotation |
 
 ### Assembly Instructions
@@ -378,16 +377,16 @@ The system is divided into three interconnected modules:
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │  ┌─────────────────────┐    ┌─────────────────────────────┐     │
-│  │  User Interface     │    │   Embedded Control Unit     │    │
-│  │  (PC - Python)      │    │   (ESP32)                   │   │
-│  │                     │    │                             │   │
-│  │  - DXF Import       │───▶│  - JSON Reception          │   │
-│  │  - Trajectory Plan  │    │  - Inverse Kinematics       │   │
-│  │  - Jog Controls     │    │  - Command Execution        │   │
-│  │  - JSON Export      │    │  - Motor Communication      │   │
-│  └─────────────────────┘    └──────────────┬──────────────┘   │
+│  │  User Interface     │    │   Embedded Control Unit     │     │
+│  │  (PC - Python)      │    │   (ESP32)                   │     │
+│  │                     │    │                             │     │
+│  │  - DXF Import       │──▶│  - JSON Reception           │     │
+│  │  - Trajectory Plan  │    │  - Inverse Kinematics       │    │
+│  │  - Jog Controls     │    │  - Command Execution        │    │
+│  │  - JSON Export      │    │  - Motor Communication      │    │
+│  └─────────────────────┘    └──────────────┬──────────────┘    │
+│                     Wi-Fi (WebSocket)     │                    │
 │                                           │                    │
-│                    Wi-Fi (WebSocket)      │                    │
 │                                           ▼                    │
 │  ┌──────────────────────────────────────────────────────────┐  │
 │  │                    SCARA Arm (Mechanical)                │  │
@@ -403,8 +402,8 @@ The system is divided into three interconnected modules:
 │  │                                      │ (Contact)   │     │  │
 │  │                                      └─────────────┘     │  │
 │  └──────────────────────────────────────────────────────────┘  │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
+│                                                                │
+└────────────────────────────────────────────────────────────────┘
 ```
 
 #### Module 1: User Interface (PC)
