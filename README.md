@@ -123,6 +123,17 @@ Agile methodology with incremental feature delivery throughout the project.
 5j) Fix the tool bracket (1) to the end of the second arm with 4x (M2.5 X 15mm) screws
 
 
+**Sub-assembly 6: Base Cover & C-clamp**
+
+6a) Make all the necessary electrical connections and insert the PCB in the base (11), then screw the door (13) to the base with 3x (M3 X 15mm) screws
+
+6b) Put the 2 M10 nuts (8.5) in the C-clamp slots (8.1)
+
+6c) Insert the 2x (M10 X 50) bolts (8.2) halfway through the 2 M10 nuts (8.5)
+
+6d) Screw the 2 M10 locknuts (8.3) at the free end of the 2 (M10 X 50) bolts (8.2)
+
+6e) Press fit the 4 C-clamp plates (8.4) at each end of the bolts 
 
 ### Mechanical Parts
 ![PlasmArm Robot](Mechanic/Mise%20en%20plan%20assemblage%20complet%20explosé.png)
