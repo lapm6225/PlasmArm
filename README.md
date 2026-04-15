@@ -97,11 +97,34 @@ Agile methodology with incremental feature delivery throughout the project.
 
 ---
 
-## Mechanical Assembly
+### Mechanical Assembly Instructions
 
-[TO BE ADDED: Assembly instructions with images]
 
-### 3D Printed Parts
+**Sub-assembly 5: End Effector**
+
+5a) Insert the spur gear (4) on the rotating arm of the SG90 (2)
+
+5b) Insert and fix the SG90 in the tool bracket (1) with 2x (M2.5 X 8mm) screws
+
+5c) Press fit the crayon (7) in the crayon holder (5)
+
+5d) Slide the crayon holder (5) in the slider (6)
+
+5e) Pass the crayon through the tube (8)
+
+5f) Glue the tube (8) and the slider (6) to the rack (3)
+
+5g) Slide the rack assembly (3) in the tool bracket slot (1)
+
+5h) Fix the limit switch (10) to the limit switch bracket (9) with 2x (M2 X 12mm) screws and nuts
+
+5i) Glue the limit switch bracket (9) to the top of the rack (3) as shown in the exploded view
+
+5j) Fix the tool bracket (1) to the end of the second arm with 4x (M2.5 X 15mm) screws
+
+
+
+### Mechanical Parts
 ![PlasmArm Robot](Mechanic/Mise%20en%20plan%20assemblage%20complet%20explosé.png)
 - [STL Printing Files](Mechanic/STL%20Printing%20Files)
 - [STEP Part Files](Mechanic/STEP%20Part%20Files)
