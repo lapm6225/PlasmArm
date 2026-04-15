@@ -226,12 +226,10 @@ def func_print():
 
 # --- Arrêt ---
 def func_stop():
-<<<<<<< HEAD
-    worker.send_cmd({"type": "STOP"})
-=======
+
     worker.trigger_emergency_stop()
     dxf.add_text(window, "Arrêt de la découpe (STOP command envoyé)")
->>>>>>> 5420e45fdc2f69efc1d8c8a5e5e2844af6e41dfd
+
 # -------------
 
 
