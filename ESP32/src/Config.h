@@ -144,6 +144,6 @@
 // Set to true to run the simple dynamixel communication test
 #define RUN_DYNAMIXEL_COMM_TEST false
 // Set to true to run the simple effector test
-#define RUN_EFFECTOR_TEST true
+#define RUN_EFFECTOR_TEST false
 
 #endif  // CONFIG_H
