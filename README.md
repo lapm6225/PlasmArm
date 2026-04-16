@@ -161,7 +161,7 @@ Agile methodology with incremental feature delivery throughout the project.
 ---
 ## Software
 
-## Software Installation
+### Software Installation
 
 ### Prerequisites
 
