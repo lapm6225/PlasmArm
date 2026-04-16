@@ -270,26 +270,6 @@ QLineEdit::placeholder {
               <number>0</number>
              </property>
              <item>
-              <widget class="QPushButton" name="menuBtn">
-               <property name="toolTip">
-                <string>Menu</string>
-               </property>
-               <property name="text">
-                <string/>
-               </property>
-               <property name="icon">
-                <iconset resource="ressources.qrc">
-                 <normaloff>:/icons/icons/align-justify.svg</normaloff>:/icons/icons/align-justify.svg</iconset>
-               </property>
-               <property name="iconSize">
-                <size>
-                 <width>24</width>
-                 <height>24</height>
-                </size>
-               </property>
-              </widget>
-             </item>
-             <item>
               <spacer name="verticalSpacer">
                <property name="orientation">
                 <enum>Qt::Vertical</enum>
@@ -299,8 +279,8 @@ QLineEdit::placeholder {
                </property>
                <property name="sizeHint" stdset="0">
                 <size>
-                 <width>20</width>
-                 <height>20</height>
+                 <width>40</width>
+                 <height>40</height>
                 </size>
                </property>
               </spacer>
@@ -338,13 +318,13 @@ QLineEdit::placeholder {
                 <cursorShape>PointingHandCursor</cursorShape>
                </property>
                <property name="toolTip">
-                <string>Connection</string>
+                <string>Connexion</string>
                </property>
                <property name="styleSheet">
                 <string notr="true"/>
                </property>
                <property name="text">
-                <string>Connection et status</string>
+                <string>Connexion et status</string>
                </property>
                <property name="icon">
                 <iconset resource="ressources.qrc">
@@ -536,29 +516,6 @@ QLineEdit::placeholder {
                <property name="icon">
                 <iconset resource="ressources.qrc">
                  <normaloff>:/icons/icons/play.svg</normaloff>:/icons/icons/play.svg</iconset>
-               </property>
-               <property name="iconSize">
-                <size>
-                 <width>24</width>
-                 <height>24</height>
-                </size>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QPushButton" name="pauseBtn">
-               <property name="cursor">
-                <cursorShape>PointingHandCursor</cursorShape>
-               </property>
-               <property name="toolTip">
-                <string>Pause</string>
-               </property>
-               <property name="text">
-                <string>Pause</string>
-               </property>
-               <property name="icon">
-                <iconset resource="ressources.qrc">
-                 <normaloff>:/icons/icons/pause.svg</normaloff>:/icons/icons/pause.svg</iconset>
                </property>
                <property name="iconSize">
                 <size>
@@ -783,7 +740,7 @@ QLineEdit::placeholder {
              </font>
             </property>
             <property name="text">
-             <string>Connection</string>
+             <string>Connexion</string>
             </property>
            </widget>
           </item>
@@ -1003,6 +960,7 @@ QLineEdit::placeholder {
             <property name="frameShadow">
              <enum>QFrame::Raised</enum>
             </property>
+            <layout class="QHBoxLayout" name="horizontalLayout_12"/>
            </widget>
           </item>
           <item alignment="Qt::AlignRight">
@@ -1158,25 +1116,6 @@ QLineEdit::placeholder {
                     <width>657</width>
                     <height>0</height>
                    </size>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <widget class="QProgressBar" name="progressBar">
-                  <property name="maximumSize">
-                   <size>
-                    <width>16777215</width>
-                    <height>5</height>
-                   </size>
-                  </property>
-                  <property name="value">
-                   <number>24</number>
-                  </property>
-                  <property name="alignment">
-                   <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
-                  </property>
-                  <property name="textVisible">
-                   <bool>false</bool>
                   </property>
                  </widget>
                 </item>
@@ -1516,246 +1455,6 @@ QLineEdit::placeholder {
                         <property name="icon">
                          <iconset resource="ressources.qrc">
                           <normaloff>:/icons/icons/arrow-down.svg</normaloff>:/icons/icons/arrow-down.svg</iconset>
-                        </property>
-                       </widget>
-                      </item>
-                     </layout>
-                    </widget>
-                   </item>
-                  </layout>
-                 </widget>
-                </item>
-                <item>
-                 <spacer name="horizontalSpacer_7">
-                  <property name="orientation">
-                   <enum>Qt::Horizontal</enum>
-                  </property>
-                  <property name="sizeHint" stdset="0">
-                   <size>
-                    <width>40</width>
-                    <height>20</height>
-                   </size>
-                  </property>
-                 </spacer>
-                </item>
-                <item alignment="Qt::AlignTop">
-                 <widget class="QFrame" name="frame_2">
-                  <property name="minimumSize">
-                   <size>
-                    <width>280</width>
-                    <height>0</height>
-                   </size>
-                  </property>
-                  <property name="maximumSize">
-                   <size>
-                    <width>300</width>
-                    <height>16777215</height>
-                   </size>
-                  </property>
-                  <property name="frameShape">
-                   <enum>QFrame::StyledPanel</enum>
-                  </property>
-                  <property name="frameShadow">
-                   <enum>QFrame::Raised</enum>
-                  </property>
-                  <layout class="QVBoxLayout" name="verticalLayout_14">
-                   <property name="spacing">
-                    <number>10</number>
-                   </property>
-                   <property name="leftMargin">
-                    <number>0</number>
-                   </property>
-                   <property name="topMargin">
-                    <number>0</number>
-                   </property>
-                   <property name="rightMargin">
-                    <number>0</number>
-                   </property>
-                   <property name="bottomMargin">
-                    <number>0</number>
-                   </property>
-                   <item alignment="Qt::AlignTop">
-                    <widget class="QFrame" name="frame_14">
-                     <property name="maximumSize">
-                      <size>
-                       <width>16777215</width>
-                       <height>50</height>
-                      </size>
-                     </property>
-                     <property name="frameShape">
-                      <enum>QFrame::StyledPanel</enum>
-                     </property>
-                     <property name="frameShadow">
-                      <enum>QFrame::Raised</enum>
-                     </property>
-                     <layout class="QHBoxLayout" name="horizontalLayout_13">
-                      <property name="spacing">
-                       <number>0</number>
-                      </property>
-                      <property name="leftMargin">
-                       <number>0</number>
-                      </property>
-                      <property name="topMargin">
-                       <number>0</number>
-                      </property>
-                      <property name="rightMargin">
-                       <number>0</number>
-                      </property>
-                      <property name="bottomMargin">
-                       <number>0</number>
-                      </property>
-                      <item>
-                       <widget class="QLabel" name="label_4">
-                        <property name="text">
-                         <string>Vit. angulaire:</string>
-                        </property>
-                       </widget>
-                      </item>
-                      <item>
-                       <widget class="QLineEdit" name="angSpeedEdit">
-                        <property name="minimumSize">
-                         <size>
-                          <width>0</width>
-                          <height>25</height>
-                         </size>
-                        </property>
-                        <property name="maximumSize">
-                         <size>
-                          <width>180</width>
-                          <height>25</height>
-                         </size>
-                        </property>
-                        <property name="inputMethodHints">
-                         <set>Qt::ImhNone</set>
-                        </property>
-                        <property name="text">
-                         <string>1</string>
-                        </property>
-                       </widget>
-                      </item>
-                      <item>
-                       <widget class="QLabel" name="label_9">
-                        <property name="text">
-                         <string>deg/click</string>
-                        </property>
-                       </widget>
-                      </item>
-                     </layout>
-                    </widget>
-                   </item>
-                   <item>
-                    <spacer name="verticalSpacer_8">
-                     <property name="orientation">
-                      <enum>Qt::Vertical</enum>
-                     </property>
-                     <property name="sizeType">
-                      <enum>QSizePolicy::Maximum</enum>
-                     </property>
-                     <property name="sizeHint" stdset="0">
-                      <size>
-                       <width>20</width>
-                       <height>25</height>
-                      </size>
-                     </property>
-                    </spacer>
-                   </item>
-                   <item alignment="Qt::AlignHCenter|Qt::AlignTop">
-                    <widget class="QFrame" name="frame_15">
-                     <property name="minimumSize">
-                      <size>
-                       <width>282</width>
-                       <height>99</height>
-                      </size>
-                     </property>
-                     <property name="frameShape">
-                      <enum>QFrame::StyledPanel</enum>
-                     </property>
-                     <property name="frameShadow">
-                      <enum>QFrame::Raised</enum>
-                     </property>
-                     <layout class="QGridLayout" name="gridLayout_3">
-                      <property name="leftMargin">
-                       <number>0</number>
-                      </property>
-                      <property name="topMargin">
-                       <number>0</number>
-                      </property>
-                      <property name="rightMargin">
-                       <number>0</number>
-                      </property>
-                      <property name="bottomMargin">
-                       <number>0</number>
-                      </property>
-                      <property name="spacing">
-                       <number>0</number>
-                      </property>
-                      <item row="2" column="0">
-                       <widget class="QLabel" name="label_6">
-                        <property name="text">
-                         <string>Bras 2</string>
-                        </property>
-                       </widget>
-                      </item>
-                      <item row="1" column="1" alignment="Qt::AlignHCenter">
-                       <widget class="QPushButton" name="A1ccBtn">
-                        <property name="cursor">
-                         <cursorShape>PointingHandCursor</cursorShape>
-                        </property>
-                        <property name="text">
-                         <string/>
-                        </property>
-                        <property name="icon">
-                         <iconset resource="ressources.qrc">
-                          <normaloff>:/icons/icons/rotate-ccw.svg</normaloff>:/icons/icons/rotate-ccw.svg</iconset>
-                        </property>
-                       </widget>
-                      </item>
-                      <item row="1" column="0">
-                       <widget class="QLabel" name="label_5">
-                        <property name="text">
-                         <string>Bras 1</string>
-                        </property>
-                       </widget>
-                      </item>
-                      <item row="1" column="2" alignment="Qt::AlignHCenter">
-                       <widget class="QPushButton" name="A1cBtn">
-                        <property name="cursor">
-                         <cursorShape>PointingHandCursor</cursorShape>
-                        </property>
-                        <property name="text">
-                         <string/>
-                        </property>
-                        <property name="icon">
-                         <iconset resource="ressources.qrc">
-                          <normaloff>:/icons/icons/rotate-cw.svg</normaloff>:/icons/icons/rotate-cw.svg</iconset>
-                        </property>
-                       </widget>
-                      </item>
-                      <item row="2" column="2" alignment="Qt::AlignHCenter">
-                       <widget class="QPushButton" name="A2cBtn">
-                        <property name="cursor">
-                         <cursorShape>PointingHandCursor</cursorShape>
-                        </property>
-                        <property name="text">
-                         <string/>
-                        </property>
-                        <property name="icon">
-                         <iconset resource="ressources.qrc">
-                          <normaloff>:/icons/icons/rotate-cw.svg</normaloff>:/icons/icons/rotate-cw.svg</iconset>
-                        </property>
-                       </widget>
-                      </item>
-                      <item row="2" column="1" alignment="Qt::AlignHCenter">
-                       <widget class="QPushButton" name="A2ccBtn">
-                        <property name="cursor">
-                         <cursorShape>PointingHandCursor</cursorShape>
-                        </property>
-                        <property name="text">
-                         <string/>
-                        </property>
-                        <property name="icon">
-                         <iconset resource="ressources.qrc">
-                          <normaloff>:/icons/icons/rotate-ccw.svg</normaloff>:/icons/icons/rotate-ccw.svg</iconset>
                         </property>
                        </widget>
                       </item>

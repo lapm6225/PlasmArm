@@ -1,10 +1,6 @@
 from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QPushButton
-from PyQt6.QtGui import QPixmap
 from PyQt6.QtCore import Qt
 from PyQt6 import QtWidgets
-
-
-
 
 class HelpDialog(QDialog):
     def __init__(self):
@@ -71,7 +67,6 @@ class HelpDialog(QDialog):
             <li>Use the <b>Delete</b> button to remove the loaded drawing.</li>
 
             <li>Press <b>Play</b> to start the cutting process.</li>
-            <li>Press <b>Pause</b> to temporarily pause the cutting process.</li>
             <li>Press the <b>Stop</b> button to completely stop and cancel the cut.</li>
 
             <li>
@@ -79,14 +74,13 @@ class HelpDialog(QDialog):
                 <ul>
                     <li><b>Tool Controls</b></li>
                     <li><b>Linear Controls</b></li>
-                    <li><b>Angular Controls</b></li>
                 </ul>
             </li>
 
             <li>When the <b>Pen</b> button is toggled, click inside the red area to send the tool to that position.</li>
             <li>Press the <b>Home</b> button to return the arm to its initial position.</li>
-            <li>Press the <b>M</b> button to manually move the arm. Useful for calibration.</li>
-            <li>Press the <b>Anchor</b> button to define the calibration point while the arm is at its home position. See the GitHub for proper orientation.</li>
+            <li>Press the <b>Anchor</b> button to manually move the arm to the home position. After 5 seconds the arm wont be moveable and will be calibrated.
+            See the GitHub for proper orientation.</li>
         </ul>
         """
 

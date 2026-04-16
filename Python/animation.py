@@ -1,106 +1,136 @@
-from PyQt6.QtWidgets import QGraphicsEllipseItem, QGraphicsPixmapItem
+from PyQt6.QtWidgets import QGraphicsEllipseItem
 from PyQt6.QtCore import QObject, pyqtProperty, Qt
-from PyQt6.QtGui import QPen, QPixmap
- 
+from PyQt6.QtGui import QPen
 
-# --- animateur qui dessine les bras ---
+
+# ============================================================
+#  AngleAnimator — Animates rotation of a QGraphicsItem
+# ============================================================
 class AngleAnimator(QObject):
+    """
+    A small helper class that exposes a Qt property 'angle'
+    so it can be animated using QPropertyAnimation.
+
+    It simply forwards the angle value to the QGraphicsItem's rotation.
+    """
+
     def __init__(self, graphics_item):
         super().__init__()
         self.item = graphics_item
         self._angle = 0
 
     def getAngle(self):
+        """Return the current angle value."""
         return self._angle
 
     def setAngle(self, value):
+        """
+        Update the internal angle and apply the rotation
+        to the associated QGraphicsItem.
+        """
         self._angle = value
         self.item.setRotation(value)
 
+    # Expose angle as a Qt property so QPropertyAnimation can target it
     angle = pyqtProperty(float, getAngle, setAngle)
 
 
+# ============================================================
+#  generate_scene — Build the robot arm scene
+# ============================================================
 def generate_scene(window, scene, bicep, forearm, origin, elbow, shoulder):
+    """
+    Build and configure the graphical scene for the robot arm.
+
+    This includes:
+    - Setting up the QGraphicsView
+    - Placing and scaling the shoulder and elbow pixmaps
+    - Defining rotation origins
+    - Drawing reach arcs (max, min, and side workspace)
+    """
+
+    # Attach the scene to the view
     window.graphicsView.setScene(scene)
     window.graphicsView.setAlignment(Qt.AlignmentFlag.AlignCenter)
     scene.setSceneRect(0, 0, 900, 450)
 
-    # --- Segment 1 : épaule ---
+    # ------------------------------------------------------------
+    # 1. SHOULDER SEGMENT (first arm link)
+    # ------------------------------------------------------------
     scene.addItem(shoulder)
-    shoulder.setScale(1/7.2)
-    shoulder.setTransformOriginPoint(121, shoulder.pixmap().height() / 2)
-    shoulder.setPos(origin.x-120, origin.y-116)
 
-    # --- Segment 2 : coude ---
-    elbow.setParentItem(shoulder)
-    elbow.setScale(7.2/6.4)
-    elbow.setTransformOriginPoint(95, (elbow.pixmap().height() / 2)-75)
-    elbow.setPos(shoulder.pixmap().width()-225, 30)
+    # Scale the shoulder image to match your robot proportions
+    shoulder.setScale(1 / 7.2)
 
+    # Set the rotation pivot (center of the shoulder joint)
+    shoulder.setTransformOriginPoint(
+        121,
+        shoulder.pixmap().height() / 2
+    )
 
-    # --- Arcs de portée (inchangés) ---
+    # Position the shoulder at the robot's origin
+    shoulder.setPos(origin.x - 120, origin.y - 116)
+
+    # ------------------------------------------------------------
+    # 2. ELBOW SEGMENT (second arm link)
+    # ------------------------------------------------------------
+    elbow.setParentItem(shoulder)  # elbow rotates with the shoulder
+    elbow.setScale(7.2 / 6.4)
+
+    # Rotation pivot for the elbow joint
+    elbow.setTransformOriginPoint(
+        95,
+        (elbow.pixmap().height() / 2) - 75
+    )
+
+    # Position relative to the shoulder image
+    elbow.setPos(shoulder.pixmap().width() - 225, 30)
+
+    # ------------------------------------------------------------
+    # 3. WORKSPACE ARCS (visual reach boundaries)
+    # ------------------------------------------------------------
+
+    # Maximum reach radius (bicep + forearm)
     R = bicep.length + forearm.length
 
+    # --- Max reach arc (outer boundary) ---
     arc_max = QGraphicsEllipseItem(
         origin.x - R,
-        origin.y - R + bicep.width/3.5,
-        2*R,
-        2*R
+        origin.y - R + bicep.width / 3.5,
+        2 * R,
+        2 * R
     )
     scene.addItem(arc_max)
     arc_max.setStartAngle(0)
-    arc_max.setSpanAngle(180 * 16)
-    arc_max.setPen(QPen(Qt.GlobalColor.red, 2))
+    arc_max.setSpanAngle(180 * 16)  # Qt uses 1/16° units
+    arc_max.setPen(QPen(Qt.GlobalColor.black, 2))
     arc_max.setZValue(1000)
 
-    arc_min = QGraphicsEllipseItem(origin.x-95, origin.y-95+10, 2*95, 2*95)
+    # --- Min reach arc (inner boundary) ---
+    arc_min = QGraphicsEllipseItem(
+        origin.x - 95,
+        origin.y - 95 + 10,
+        2 * 95,
+        2 * 95
+    )
     scene.addItem(arc_min)
     arc_min.setStartAngle(0)
     arc_min.setSpanAngle(180 * 16)
     arc_min.setPen(QPen(Qt.GlobalColor.red, 2))
     arc_min.setZValue(1000)
-    scene.setSceneRect(scene.itemsBoundingRect())
 
-
-    arc_sw = QGraphicsEllipseItem(origin.x-R,origin.y-R/2+10, 2*214, 2*214)
+    # --- Side workspace arc (custom constraint) ---
+    arc_sw = QGraphicsEllipseItem(
+        origin.x - R,
+        origin.y - R / 2 + 10,
+        2 * 214,
+        2 * 214
+    )
     scene.addItem(arc_sw)
     arc_sw.setStartAngle(0)
     arc_sw.setSpanAngle(180 * 16)
     arc_sw.setPen(QPen(Qt.GlobalColor.red, 2))
     arc_sw.setZValue(1000)
+
+    # Update scene rect to include all items
     scene.setSceneRect(scene.itemsBoundingRect())
-
-# # --- Définition des dimension et des éléments dans l'affichage ---
-# def generate_scene(window, scene, bicep, forearm, origin, elbow, shoulder):
-#     # --- Définition de la zone d'affichage
-#     window.graphicsView.setScene(scene)
-#     window.graphicsView.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
-#     scene.setSceneRect(0, 0, 800, 450)
-
-
-#     # --- Épaule ---  
-#     scene.addItem(shoulder)
-#     shoulder.setTransformOriginPoint(0, bicep.width/2) # position de lorigine sur l'objet
-#     shoulder.setPos(origin.x, origin.y) # déplacement
-
-#     # --- Coude ---
-#     elbow.setParentItem(shoulder)
-#     elbow.setTransformOriginPoint(0, forearm.width/2) # position de lorigine sur l'objet
-#     elbow.setPos(bicep.length, 0) # déplacement
-
-#     # --- Affichage porté max ---
-#     arc_max = QGraphicsEllipseItem( (origin.x-bicep.length-forearm.length), (origin.y-bicep.length-forearm.length+bicep.width/2), 
-#                                     2*(bicep.length+forearm.length), 2*(bicep.length+forearm.length)) #(pos x, pos y, taille en x, taille en y)
-#     scene.addItem(arc_max)
-#     arc_max.setStartAngle(0)
-#     arc_max.setSpanAngle(180 * 16) # angle désiré en 1/16 de degrés
-#     arc_max.setPen(QPen(Qt.GlobalColor.red, 2)) # dessiner en rouge
-#     arc_max.setZValue(1000) # Définir la hauteur(avant-plan/arrière-plan)
-
-#     # --- Affichage porté min ---
-#     arc_min = QGraphicsEllipseItem(329, 339, 142, 142) #(pos x, pos y, taille en x, taille en y)
-#     scene.addItem(arc_min)
-#     arc_min.setStartAngle(0)
-#     arc_min.setSpanAngle(180 * 16) # angle désiré en 1/16 de degrés
-#     arc_min.setPen(QPen(Qt.GlobalColor.red, 2)) # dessiner en rouge
-#     arc_min.setZValue(1000) # Définir la hauteur(avant-plan/arrière-plan)
