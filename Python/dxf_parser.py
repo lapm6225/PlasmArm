@@ -143,6 +143,7 @@ class DxfParser:
             commands.append({
                 "type": "TOOL",
                 "state": "DOWN",
+
             })
             commands.append({
                 "type": "DELAY",

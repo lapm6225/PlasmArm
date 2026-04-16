@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1138</width>
+    <width>1242</width>
     <height>603</height>
    </rect>
   </property>
@@ -1930,16 +1930,6 @@ QLineEdit::placeholder {
                   </property>
                   <property name="toolTip">
                    <string>Déplacement manuel</string>
-                  </property>
-                  <property name="text">
-                   <string>M</string>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <widget class="QPushButton" name="calibrateBtn">
-                  <property name="toolTip">
-                   <string>Calibration</string>
                   </property>
                   <property name="text">
                    <string/>

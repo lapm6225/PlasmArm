@@ -48,12 +48,12 @@ origin = Point(550, 450)
 # def limit(shoulder, elbow):
 #     # Max angle of the 2e arm
 #     if elbow > 150 or elbow <- 150:
-#         dxf.add_text(window, "Max elbow angle reached")
+#         print("Max elbow angle reached")
 #         return False
     
 #     # Max angle of the 1st arm
 #     if shoulder > 0 or shoulder < -180:
-#         dxf.add_text(window, "Max elbow angle reached")
+#         print("Max elbow angle reached")
 #         return False
     
 #     x = bicep.length*math.cos(shoulder*math.pi/180)+forearm.length*math.cos((shoulder+elbow)*math.pi/180)
@@ -61,13 +61,12 @@ origin = Point(550, 450)
 
 #     # Max range of the arm
 #     if math.sqrt(pow(x,2)+pow(y,2))>bicep.length+forearm.length+0.1:
-#         dxf.add_text(window, "Out of bounds")
+#         print("Out of bounds")
 #         return False
     
 #     # Limitation of the workspace (demi circle)
 #     if y > 0:
-#         dxf.add_text(window, "Out of range in Y axis")
-#         print("test")
+#         print("Out of range in Y axis")
 #         return False
     
 #     # Actualise the tool position
@@ -76,7 +75,7 @@ origin = Point(550, 450)
 #         y=round(y,2)
 #         # Debug prints
 #         text = f"Position de l'effecteur: ({x}, {-y})"
-#         dxf.add_text(window, text )
+#         print( text )
 #         return True
 
 
@@ -145,14 +144,14 @@ def tool_up():
     global tool_raised
     tool_raised = True
     worker.send_cmd({"type": "TOOL", "state": "UP"})
-    dxf.add_text(window, "Tool raised (action demandée)")
+    print("Tool raised (action demandée)")
 
 # --- Descendre l'outil ---
 def tool_down():
     global tool_raised
     tool_raised = False
     worker.send_cmd({"type": "TOOL", "state": "DOWN"})
-    dxf.add_text(window, "Tool lowered (action demandée)")
+    print("Tool lowered (action demandée)")
 
 def send_target_move():
     worker.send_cmd({
@@ -167,7 +166,6 @@ def move_forward():
     global tool_pos
     y = tool_pos.y - linear_speed
     tool_pos.y = y
-    print(tool_pos.x, -(tool_pos.y))
     send_target_move()
     
 def move_backward():
@@ -221,7 +219,7 @@ def move_left():
 # --- Imprimer ---
 def func_print():
     if hasattr(window, "dxf_preview"):
-        dxf.add_text(window, "Début de la découpe")
+        print("Début de la découpe")
         cut=DxfParser("export_robot.dxf")
         commands = cut.parse()
         cut.print_preview(commands)
@@ -233,7 +231,7 @@ def func_print():
 def func_stop():
 
     worker.trigger_emergency_stop()
-    dxf.add_text(window, "Arrêt de la découpe (STOP command envoyé)")
+    print("Arrêt de la découpe (STOP command envoyé)")
 
 # -------------
 
@@ -288,14 +286,9 @@ class ClickableGraphicsView(QGraphicsView):
         # Convert to scene coordinates
         scene_pos = self.mapToScene(int(view_pos.x()), int(view_pos.y()))
 
-        # Center relative to pivot (550, 450)
-        origin_x = 550
-        origin_y = 450
+        centered_x = scene_pos.x() - origin.x
+        centered_y = scene_pos.y() - origin.y -10
 
-        centered_x = scene_pos.x() - origin_x
-        centered_y = scene_pos.y() - origin_y -10
-
-        print("Scene coords:", scene_pos)
         print("Centered coords:", centered_x, centered_y)
 
         # 🔥 If toggle is ON → move robot
@@ -303,7 +296,7 @@ class ClickableGraphicsView(QGraphicsView):
             tool_pos.x = centered_x
             tool_pos.y = centered_y
             send_target_move()
-            dxf.add_text(window, f"Déplacement vers ({centered_x:.1f}, {centered_y:.1f})")
+            print(f"Déplacement vers ({centered_x:.1f}, {centered_y:.1f})")
 
         super().mousePressEvent(event)
 
@@ -312,12 +305,12 @@ class ClickableGraphicsView(QGraphicsView):
 def connect():
     ip = window.ipEdit.text().strip()
     print("IP entered:", ip)
-    dxf.add_text(window, f"Connexion à {ip} demandée...")
+    print(f"Connexion à {ip} demandée...")
     worker.connect_robot(ip)
 
 def disconnect():
     worker.disconnect_robot()
-    dxf.add_text(window, "Déconnexion demandée...")
+    print("Déconnexion demandée...")
     window.connectPanelBtn.setChecked(False)
     window.connectPanelBtn.setIcon(QIcon(":/icons/icons/wifi-off.svg"))
     print("disconnect")
@@ -326,7 +319,7 @@ def toggle_click_move():
     global click_move_enabled
     click_move_enabled = not click_move_enabled
     state = "activé" if click_move_enabled else "désactivé"
-    dxf.add_text(window, f"Déplacement par clic {state}")
+    print(f"Déplacement par clic {state}")
 
 # Callbacks QThread
 def on_connected(success):
@@ -334,12 +327,12 @@ def on_connected(success):
         window.connectPanelBtn.setChecked(True)
         window.connectPanelBtn.setIcon(QIcon(":/icons/icons/wifi.svg"))
 
-        dxf.add_text(window, "Connecté à l'ESP32 avec succès !")
+        print("Connecté à l'ESP32 avec succès !")
     else:
         window.connectPanelBtn.setChecked(False)
         window.connectPanelBtn.setIcon(QIcon(":/icons/icons/wifi-off.svg"))
 
-        dxf.add_text(window, "Erreur lors de la connexion.")
+        print("Erreur lors de la connexion.")
 
 def on_status_received(data):
     global tool_raised
@@ -362,14 +355,17 @@ def on_status_received(data):
             # Recalibrer la cible locale si inactif pour ne pas "sauter" un pas au clic suivant
             tool_pos.x = x_reel
             tool_pos.y = -y_reel
-        dxf.add_text(window, text)
+        print(text)
 
     # 3. État de l'outil
     if 'tool' in data:
         tool_raised = not data['tool']
 
+    if 'progress' in data:
+        window.progressBar.setvalue(data['progress'])
+
 def on_error(err_msg):
-    dxf.add_text(window, f"⚠️ Erreur WS : {err_msg}")
+    print(f"⚠️ Erreur WS : {err_msg}")
 
 def toggle_connection():
     connection_panel.setHidden(not connection_panel.isHidden())
@@ -380,11 +376,14 @@ def toggle_control():
     auto_fit.schedule_refit()
 
 def manual():
-    worker.send_cmd({"type": "SET_HOME"})
-
-def calibration():
-    worker.send_cmd({"type": "SAVE_HOME"})
-    worker.send_cmd({"type": "HOME"})
+    cmd = [
+    {"type": "SET_HOME"},
+    {"type": "DELAY", "ms": 5000},
+    {"type": "SAVE_HOME"},
+    {"type": "HOME"},
+    ]
+    worker.stream_commands(cmd)
+    
 
 class TitleBarDrag(QObject):
     def __init__(self, window, header):
@@ -461,7 +460,7 @@ def connect_buttons():
     window.jogBtn.clicked.connect(toggle_control)
     window.homeBtn.clicked.connect(go_home)
     window.manualBtn.clicked.connect(manual)
-    window.calibrateBtn.clicked.connect(calibration)
+
 
 
 def connect_line_edits():

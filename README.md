@@ -85,7 +85,7 @@ Agile methodology with incremental feature delivery throughout the project.
 
 ### Power Supply
 
-- **12V DC** power supply (minimum 3A recommended)
+- **12V DC** power supply (90W, 7.5A)
 - 12V to 5V buck converter for ESP32 and SG90
 
 ### Electronics

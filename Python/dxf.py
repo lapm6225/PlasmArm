@@ -217,8 +217,8 @@ def load_dxf_into_scene(window, scene, view, filename):
     bbox = window.dxf_group.boundingRect()
 
     # Point de centrage
-    scene_center_x = 400
-    scene_center_y = 300
+    scene_center_x = 550
+    scene_center_y = 200
 
     # Centre du DXF
     dxf_center_x = bbox.x() + bbox.width() / 2
