@@ -227,7 +227,7 @@ Agile methodology with incremental feature delivery throughout the project.
 
 ### Wiring Diagram
 
-![Wiring](Electric/Shéma_éléctrique.png)
+![Wiring](Electric/Electrical%20Wiring%20Diagram.png)
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
