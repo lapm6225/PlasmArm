@@ -1,3 +1,8 @@
+
+
+Mechanic/End%20Effector%20Exploded%20Assembly%20Drawing.png
+
+
 For the assembly instructions, refer to BoM and drawings: 
 
 **Sub-assembly 1: Motor 1, Coupling and Base**
