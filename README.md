@@ -97,7 +97,54 @@ Agile methodology with incremental feature delivery throughout the project.
 
 ---
 
-### Mechanical Assembly Instructions
+### Mechanical Assembly
+
+### Mechanical Parts
+![PlasmArm Robot](Mechanic/Mise%20en%20plan%20assemblage%20complet%20explosé.png)
+- [STL Printing Files](Mechanic/STL%20Printing%20Files)
+- [STEP Part Files](Mechanic/STEP%20Part%20Files)
+
+
+### Assembly Instructions
+
+**Sub-assembly 1: Motor 1, Coupling and Base**
+
+1a) Unscrew central screw of the Dynamixel servo (5.3) output disk
+
+1b) Mount this servo output disk to the custom coupling (5.4) using 4x (M2 X 10mm)
+
+1c) Mount the custom coupling (5.3) to the bore set screw hub (5.1) using 4x (6-32 X 3/8")
+
+1d) Mount this coupling sub-assembly back onto the Dynamixel servo (5.3) using the central screw of step 1a)
+
+1e) Insert this servo and coupling into the robot base (11) and fix using 8x (M2.5 X 16mm)
+
+1f) Insert bearing (6) into the planned hole on the base (1)
+
+
+**Sub-assembly 2: Arm 1, Shafts and Motor 2**
+
+2a) Insert 4" D-shaft (5.2) and 3" D-shaft (2) into D-shaped bores of robot arm (1) according to assembly drawing
+
+2b) Mount bore set screw hub (10) onto 4" D-shaft and arm 1 using 4x (6-32 X 3/4")
+
+2c) Glue friction bloc (14) and cable management attachements (15 and 16) onto arm 1 according to positions in assembly drawing
+
+2d) Mount Gt timing belt pulley (7) onto Dynamixel servo (4) output disk using 4x (M2 X 10mm)
+
+2e) Mount Dynamixel servo (4) onto arm 1 using 4x (M2.5 X 5mm) in the adjustment slots, tighten in later step when adjusting Gt timing belt tension
+
+2f) Insert the 4" D-shaft (5.2) that is on this sub-assembly into the bearing (6) on base (1) and into the motor coupling. Fix the shaft to the motor coupling using the set screw on bore hub (5.1)
+
+**Sub-assembly 3: Base top**
+
+3a) Mount elastic tensioner (20) onto base top (18) using 3x (M4 X 12mm)
+
+3b) Insert bearing (6) into the planned hole on the base top (18)
+
+3c) Insert base top (18) into 4" D-shaft (5.2) and mount base top onto base (1) using 3x (M5 X 15mm)
+
+3d) Insert elastic pulley (19) onto top of 4" D-shaft (5.2)
 
 **Sub-assembly 4: Arm 2**
 
@@ -133,8 +180,6 @@ Agile methodology with incremental feature delivery throughout the project.
 
 5j) Fix the tool bracket (1) to the end of the second arm with 4x (M2.5 X 15mm) screws
 
-
-
 **Sub-assembly 6: Base Cover & C-clamp**
 
 6a) Make all the necessary electrical connections and insert the PCB in the base (11), then screw the door (13) to the base with 3x (M3 X 15mm) screws
@@ -149,18 +194,9 @@ Agile methodology with incremental feature delivery throughout the project.
 
 6f) Press fit the assembled C-clamp (8) in the base's triangular slot
 
-### Mechanical Parts
-![PlasmArm Robot](Mechanic/Mise%20en%20plan%20assemblage%20complet%20explosé.png)
-- [STL Printing Files](Mechanic/STL%20Printing%20Files)
-- [STEP Part Files](Mechanic/STEP%20Part%20Files)
+---
 
-<!--
-Print all STL files from the `STL/` folder with recommended settings:
-- Layer height: 0.2mm
-- Infill: 20%
-- Material: PLA or PETG recommended
-- Supports: As needed for overhangs
--->
+## Electrical Wiring
 
 ### Bill of Materials
 
@@ -175,29 +211,7 @@ Print all STL files from the `STL/` folder with recommended settings:
 | Limit Switch (NO) | 1 | Z-axis contact detection |
 | 10kΩ Resistor | 1 | Pull-up for limit switch |
 | 1N4148 Diode | 1 | Half-duplex UART |
-| M3 Screws | 20+ | Various lengths |
-| 608 Bearings | 2+ | For smooth rotation |
-
-### Assembly Instructions
-
-[TO BE ADDED: Step-by-step assembly guide with images]
-
-<!--
-1. Print all required parts
-2. Install heat inserts into 3D printed parts
-3. Assemble base with first Dynamixel motor
-4. Attach first arm segment
-5. Assemble elbow joint with second Dynamixel
-6. Attach second arm segment
-7. Install SG90 with rack-and-pinion for Z-axis
-8. Mount limit switch for tool contact detection
-9. Install ESP32 and electronics in base
-10. Wire all connections according to electrical diagram
--->
-
----
-
-## Electrical Wiring
+| Capacitor |  |  |
 
 ### ESP32 Pin Connections
 
