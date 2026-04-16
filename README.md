@@ -107,7 +107,7 @@ Agile methodology with incremental feature delivery throughout the project.
 
 
 ### Assembly Instructions
-- [Assembly Instruction](Mechanic/Assembly%20Instructions)
+- [Assembly Instructions](Mechanic/Assembly%20Instructions.md)
 
 ---
 
