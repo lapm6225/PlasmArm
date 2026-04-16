@@ -24,7 +24,7 @@ def check():
             bad = 0
             for c in moves:
                 r = (c["x"]**2 + c["y"]**2)**0.5
-                if c["y"] < 0 or r > 458 or r < 85:
+                if c["y"] < -10 or r > 419 or r < 85:
                     bad += 1
             if bad > 0:
                 print(f"  WARNING: {bad}/{len(moves)} points OUTSIDE workspace (y<0 or r>300 or r<50)")

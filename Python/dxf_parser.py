@@ -143,7 +143,9 @@ class DxfParser:
             commands.append({
                 "type": "TOOL",
                 "state": "DOWN",
+
             })
+            commands.append({"type": "delay", "ms":500})
             
             # Cut through all remaining vertices
             for point in shape[1:]:
