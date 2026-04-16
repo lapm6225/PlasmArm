@@ -388,8 +388,8 @@ void taskStateMachine(void* parameter) {
                     JointAngles targetAngles;
                     ArmConfig usedConfig;
 
-                    bool ikSuccess = kinematics.inverse(targetXY, targetAngles, currentConfig, usedConfig);
-
+                    //bool ikSuccess = kinematics.inverse(targetXY, targetAngles, currentConfig, usedConfig);
+                    bool ikSuccess = kinematics.inverse(targetXY, targetAngles, currentConfig);
                     if (!ikSuccess) {
                         Serial.printf("SM: IK failed for (%.2f, %.2f)\n", targetXY.x, targetXY.y);
                         activeBuffer->pop();
@@ -398,7 +398,7 @@ void taskStateMachine(void* parameter) {
                                       currentConfig == ArmConfig::RIGHT_ELBOW ? "RIGHT" : "LEFT",
                                       usedConfig == ArmConfig::RIGHT_ELBOW ? "RIGHT" : "LEFT",
                                       targetXY.x, targetXY.y);
-
+                        /*
                         targetConfig = usedConfig;
                         configSwitchPending = true;
                         // Check actual servo position — robotState.toolActive may have
@@ -412,7 +412,8 @@ void taskStateMachine(void* parameter) {
                                       toolServo.getAngle(),
                                       restoreToolAfterSwitch ? "YES" : "NO");
                         // Note: We deliberately DO NOT pop the buffer here. The point stays at the front for later execution.
-                    } else {
+                    */
+                    }else {
                         activeBuffer->pop();
                         if (dxlCtrl) {
                             dxlCtrl->syncWriteAngles(targetAngles.theta1, targetAngles.theta2);
@@ -443,18 +444,18 @@ void taskStateMachine(void* parameter) {
         // 4. STATE: TOOL_ACTUATING — non-blocking servo motion
         // ====================================================================
         if (state == PlannerState::TOOL_ACTUATING) {
-            Serial.printf("SM: TOOL_ACTUATING loop (down=%d, up=%d, angle=%d, switch=%d)\n",
+            Serial.printf("SM: TOOL_ACTUATING loop (down=%d, up=%d, angle=%f, switch=%d)\n",
                           toolMovingDown, toolMovingUp, toolServo.getAngle(),
                           digitalRead(TOOL_SWITCH_PIN));
             bool done = false;
-            if (toolMovingDown) {
+            if (toolMovingDown && !done) {
                 done = toolServo.stepDown(TOOL_STEP_DEG);
                 uint32_t elapsed = millis() - toolActuateStartTime;
                 if (elapsed > TOOL_ACTUATE_TIMEOUT_MS) {
                     Serial.println("SM: TOOL_DOWN timeout!");
                     done = true;
                 }
-            } else if (toolMovingUp) {
+            } else if (toolMovingUp && !done) {
                 done = toolServo.stepUp(TOOL_STEP_DEG, toolTargetAngle);
             }
 
