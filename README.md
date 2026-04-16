@@ -9,6 +9,9 @@ A 3-DOF (X, Y, Z) SCARA robotic arm controlled by an ESP32 with real-time WebSoc
 - [Overview](#overview)
 - [Project Context](#project-context)
 - [Electrical](#Electrical)
+  - [Electrical Components](#Electrical-Components)
+  - [Bill of Materials](#Bill-of-Materials)
+  - [Wiring Diagram](#Wiring-Diagram)
 - [Mechanical](#Mechanical)
   - [BoM & Drawings](#BoM-and-Drawings)
   - [Mechanical Project Files](#Mechanical-Project-Files)
@@ -69,7 +72,7 @@ Agile methodology with incremental feature delivery throughout the project.
 
 ## Electrical
 
-### Microcontroller
+### Electrical Components
 
 - **ESP32** (esp32doit-devkit-v1 or compatible)
 - USB cable for programming
