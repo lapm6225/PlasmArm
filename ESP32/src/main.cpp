@@ -286,12 +286,16 @@ void taskStateMachine(void* parameter) {
         // 1. CHECK STOP REQUEST (from any task via volatile flag)
         // ====================================================================
         if (stopRequested) {
+            Serial.println("SM: STOP REQUESTED");
             stopRequested = false;
-            state = PlannerState::IDLE;
-            robotState.plannerState = PlannerState::IDLE;
-            robotState.isMoving = false;
-            robotState.toolActive = false;
-            robotState.toolZ = 0;
+            
+            // Move tool up
+            toolTargetAngle = 175.0f;  // Retracted position
+            toolMovingDown = false;
+            toolMovingUp = true;
+            toolActuateStartTime = millis();
+            state = PlannerState::TOOL_ACTUATING;
+            robotState.plannerState = PlannerState::TOOL_ACTUATING;
 
             // Clear pending commands
             xQueueReset(commandQueue);
@@ -304,7 +308,6 @@ void taskStateMachine(void* parameter) {
 
             // Safety: disable tool actuating logic
             toolMovingDown = false;
-            toolMovingUp = false;
             configSwitchPending = false;
             
             if (dxlCtrl) {

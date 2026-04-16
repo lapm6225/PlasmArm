@@ -8,35 +8,38 @@ A 3-DOF (X, Y, Z) SCARA robotic arm controlled by an ESP32 with real-time WebSoc
 
 - [Overview](#overview)
 - [Project Context](#project-context)
-- [Hardware Requirements](#hardware-requirements)
-- [Mechanical Assembly](#mechanical-assembly)
+- [Electrical](#Electrical)
+  - [Electrical Components](#Electrical-Components)
+  - [Bill of Materials](#Bill-of-Materials)
+  - [Wiring Diagram](#Wiring-Diagram)
+- [Mechanical](#Mechanical)
   - [BoM & Drawings](#BoM-and-Drawings)
   - [Mechanical Project Files](#Mechanical-Project-Files)
   - [Assembly Instructions](#Assembly-Instructions)
-- [Electrical Wiring](#electrical-wiring)
-- [Software Installation](#software-installation)
-  - [Prerequisites](#prerequisites)
-  - [PlatformIO Setup](#platformio-setup)
-  - [Python Client Setup](#python-client-setup)
-- [Configuration](#configuration)
-- [Building and Uploading](#building-and-uploading)
-- [Running the Robot](#running-the-robot)
-- [Architecture Overview](#architecture-overview)
-  - [System Modules](#system-modules)
-  - [FreeRTOS Task Structure](#freertos-task-structure)
-  - [Kinematics](#kinematics)
-  - [Trajectory Planning](#trajectory-planning)
-- [Web Interface](#web-interface)
-- [Testing](#testing)
-- [Licenses](#licenses)
-- [Troubleshooting](#troubleshooting)
-- [Project Structure](#project-structure)
+- [Software](#Software)
+  - [Software Installation](#software-installation)
+    - [Prerequisites](#prerequisites)
+    - [PlatformIO Setup](#platformio-setup)
+    - [Python Client Setup](#python-client-setup)
+  - [Configuration](#configuration)
+  - [Building and Uploading](#building-and-uploading)
+  - [Running the Robot](#running-the-robot)
+  - [Architecture Overview](#architecture-overview)
+    - [System Modules](#system-modules)
+    - [FreeRTOS Task Structure](#freertos-task-structure)
+    - [Kinematics](#kinematics)
+    - [Trajectory Planning](#trajectory-planning)
+  - [Web Interface](#web-interface)
+  - [Testing](#testing)
+  - [Licenses](#licenses)
+  - [Troubleshooting](#troubleshooting)
+  - [Project Structure](#project-structure)
 
 ---
 
 ## Overview
 
-PlasmArm is a proof-of-concept for a compact, wall-mounted SCARA robot designed for plasma cutting in small workshops. The robot folds when inactive to save floor space.
+PlasmArm is a proof-of-concept for a compact, table-mounted SCARA robot designed for plasma cutting in small workshops. The robot folds when inactive to save floor space.
 
 ### Key Features
 
@@ -59,7 +62,7 @@ This is a **proof-of-concept** version at reduced scale where the plasma torch a
 
 ### Motivation
 
-PlasmArm emerged from the need for space-saving solutions in small machining workshops. Traditional CNC plasma tables require significant floor space. This project proposes a compact alternative - a wall or floor-mounted SCARA robot that folds when inactive to free up workspace.
+PlasmArm emerged from the need for space-saving solutions in small machining workshops. Traditional CNC plasma tables require significant floor space. This project proposes a compact alternative - a table-mounted SCARA robot that folds when inactive to free up workspace.
 
 ### Development Method
 
@@ -67,9 +70,9 @@ Agile methodology with incremental feature delivery throughout the project.
 
 ---
 
-## Hardware Requirements
+## Electrical
 
-### Microcontroller
+### Electrical Components
 
 - **ESP32** (esp32doit-devkit-v1 or compatible)
 - USB cable for programming
@@ -98,24 +101,6 @@ Agile methodology with incremental feature delivery throughout the project.
 
 ---
 
-### Mechanical Assembly
-
-### BoM and Drawings
-![PlasmArm Robot Exploded](Mechanic/Complete%20Robot%20Exploded%20Assembly%20Drawing.png)
-![End Effector Exploded](Mechanic/End%20Effector%20Exploded%20Assembly%20Drawing.png)
-
-### Mechanical Project Files
-- [STL Printing Files](Mechanic/STL%20Printing%20Files)
-- [STEP Part Files](Mechanic/STEP%20Part%20Files)
-
-
-### Assembly Instructions
-- [Assembly Instructions](Mechanic/Assembly%20Instructions.md)
-
----
-
-## Electrical Wiring
-
 ### Bill of Materials
 
 | Component | Quantity | Notes |
@@ -141,7 +126,7 @@ Agile methodology with incremental feature delivery throughout the project.
 | SG90 Servo (Z-axis) | 26 | PWM output |
 | Limit Switch | 32 | Input with 10kΩ pull-up |
 | 5V Power | - | From buck converter |
-| 3.3V Reference | - | From ESP32 |
+| 3.3V Reference | - | From Level Shifter |
 
 ### Wiring Diagram
 
@@ -158,7 +143,25 @@ Agile methodology with incremental feature delivery throughout the project.
 
 ---
 
-## Software Installation
+
+### Mechanical 
+
+### BoM and Drawings
+![PlasmArm Robot Exploded](Mechanic/Complete%20Robot%20Exploded%20Assembly%20Drawing.png)
+![End Effector Exploded](Mechanic/End%20Effector%20Exploded%20Assembly%20Drawing.png)
+
+### Mechanical Project Files
+- [STL Printing Files](Mechanic/STL%20Printing%20Files)
+- [STEP Part Files](Mechanic/STEP%20Part%20Files)
+
+
+### Assembly Instructions
+- [Assembly Instructions](Mechanic/Assembly%20Instructions.md)
+
+---
+## Software
+
+### Software Installation
 
 ### Prerequisites
 
@@ -319,42 +322,9 @@ Use the Python GUI to:
 
 ### System Modules
 
-The system is divided into three interconnected modules:
+The system is divided into three interconnected modules: a PC user interface, an ESP32 embedded control unit and the SCARA arm mechanical unit.
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    PlasmArm Architecture                        │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  ┌─────────────────────┐    ┌─────────────────────────────┐     │
-│  │  User Interface     │    │   Embedded Control Unit     │     │
-│  │  (PC - Python)      │    │   (ESP32)                   │     │
-│  │                     │    │                             │     │
-│  │  - DXF Import       │──▶│  - JSON Reception           │     │
-│  │  - Trajectory Plan  │    │  - Inverse Kinematics       │    │
-│  │  - Jog Controls     │    │  - Command Execution        │    │
-│  │  - JSON Export      │    │  - Motor Communication      │    │
-│  └─────────────────────┘    └──────────────┬──────────────┘    │
-│                     Wi-Fi (WebSocket)     │                    │
-│                                           │                    │
-│                                           ▼                    │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │                    SCARA Arm (Mechanical)                │  │
-│  │                                                          │  │
-│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────┐   │  │
-│  │  │ Dynamixel   │  │ Dynamixel   │  │ SG90 + Rack     │   │  │
-│  │  │ (Shoulder)  │──│ (Elbow)     │  │ (Z-axis)        │   │  │
-│  │  │  ID: 1      │  │  ID: 2      │  │                 │   │  │
-│  │  └─────────────┘  └─────────────┘  └────────┬────────┘   │  │
-│  │                                             │            │  │
-│  │                                      ┌──────┴──────┐     │  │
-│  │                                      │ Limit Switch│     │  │
-│  │                                      │ (Contact)   │     │  │
-│  │                                      └─────────────┘     │  │
-│  └──────────────────────────────────────────────────────────┘  │
-│                                                                │
-└────────────────────────────────────────────────────────────────┘
-```
+![Communication Block Diagram](Software/Communication%20Block%20Diagram.png)
 
 #### Module 1: User Interface (PC)
 
