@@ -100,7 +100,8 @@ Agile methodology with incremental feature delivery throughout the project.
 ### Mechanical Assembly
 
 ### BoM and Drawing
-![PlasmArm Robot](Mechanic/Mise%20en%20plan%20assemblage%20complet%20explosé.png)
+![PlasmArm Robot Exploded](Mechanic/Complete%20Robot%20Exploded%20Assembly%20Drawing.png)
+![End Effector Exploded]()
 - [STL Printing Files](Mechanic/STL%20Printing%20Files)
 - [STEP Part Files](Mechanic/STEP%20Part%20Files)
 
