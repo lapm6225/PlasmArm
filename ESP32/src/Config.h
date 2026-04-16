@@ -84,7 +84,7 @@
 
 // Tool actuation parameters
 #define TOOL_STEP_DEG 0.4f            // degrees per step (non-blocking speed control)
-#define TOOL_ACTUATE_TIMEOUT_MS 2000  // max time for down motion before timeout
+#define TOOL_ACTUATE_TIMEOUT_MS 5000  // max time for down motion before timeout
 
 // Serial communication with Dynamixels
 #define RXD2 16
