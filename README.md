@@ -8,12 +8,12 @@ A 3-DOF (X, Y, Z) SCARA robotic arm controlled by an ESP32 with real-time WebSoc
 
 - [Overview](#overview)
 - [Project Context](#project-context)
-- [Hardware Requirements](#hardware-requirements)
+- [Electrical](#Electrical)
 - [Mechanical Assembly](#mechanical-assembly)
   - [BoM & Drawings](#BoM-and-Drawings)
   - [Mechanical Project Files](#Mechanical-Project-Files)
   - [Assembly Instructions](#Assembly-Instructions)
-- [Electrical Wiring](#electrical-wiring)
+
 - [Software Installation](#software-installation)
   - [Prerequisites](#prerequisites)
   - [PlatformIO Setup](#platformio-setup)
@@ -67,7 +67,7 @@ Agile methodology with incremental feature delivery throughout the project.
 
 ---
 
-## Hardware Requirements
+## Electrical
 
 ### Microcontroller
 
@@ -97,24 +97,6 @@ Agile methodology with incremental feature delivery throughout the project.
 - Diode (1N4148 or similar) for half-duplex UART
 
 ---
-
-### Mechanical Assembly
-
-### BoM and Drawings
-![PlasmArm Robot Exploded](Mechanic/Complete%20Robot%20Exploded%20Assembly%20Drawing.png)
-![End Effector Exploded](Mechanic/End%20Effector%20Exploded%20Assembly%20Drawing.png)
-
-### Mechanical Project Files
-- [STL Printing Files](Mechanic/STL%20Printing%20Files)
-- [STEP Part Files](Mechanic/STEP%20Part%20Files)
-
-
-### Assembly Instructions
-- [Assembly Instructions](Mechanic/Assembly%20Instructions.md)
-
----
-
-## Electrical Wiring
 
 ### Bill of Materials
 
@@ -155,6 +137,23 @@ Agile methodology with incremental feature delivery throughout the project.
 2. **SG90**: PWM signal from GPIO 26 through level shifter
 3. **Limit Switch**: GPIO 32 with 10kΩ pull-up to 3.3V
 4. **Half-Duplex**: Diode on GPIO 17 prevents TX from blocking Dynamixel responses
+
+---
+
+
+### Mechanical Assembly
+
+### BoM and Drawings
+![PlasmArm Robot Exploded](Mechanic/Complete%20Robot%20Exploded%20Assembly%20Drawing.png)
+![End Effector Exploded](Mechanic/End%20Effector%20Exploded%20Assembly%20Drawing.png)
+
+### Mechanical Project Files
+- [STL Printing Files](Mechanic/STL%20Printing%20Files)
+- [STEP Part Files](Mechanic/STEP%20Part%20Files)
+
+
+### Assembly Instructions
+- [Assembly Instructions](Mechanic/Assembly%20Instructions.md)
 
 ---
 
