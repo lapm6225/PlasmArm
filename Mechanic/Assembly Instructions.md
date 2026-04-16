@@ -1,5 +1,5 @@
 
-
+Mechanic/Complete%20Robot%20Exploded%20Assembly%20Drawing.png
 Mechanic/End%20Effector%20Exploded%20Assembly%20Drawing.png
 
 
