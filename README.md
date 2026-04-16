@@ -39,7 +39,7 @@ A 3-DOF (X, Y, Z) SCARA robotic arm controlled by an ESP32 with real-time WebSoc
 
 ## Overview
 
-PlasmArm is a proof-of-concept for a compact, wall-mounted SCARA robot designed for plasma cutting in small workshops. The robot folds when inactive to save floor space.
+PlasmArm is a proof-of-concept for a compact, table-mounted SCARA robot designed for plasma cutting in small workshops. The robot folds when inactive to save floor space.
 
 ### Key Features
 
@@ -62,7 +62,7 @@ This is a **proof-of-concept** version at reduced scale where the plasma torch a
 
 ### Motivation
 
-PlasmArm emerged from the need for space-saving solutions in small machining workshops. Traditional CNC plasma tables require significant floor space. This project proposes a compact alternative - a wall or floor-mounted SCARA robot that folds when inactive to free up workspace.
+PlasmArm emerged from the need for space-saving solutions in small machining workshops. Traditional CNC plasma tables require significant floor space. This project proposes a compact alternative - a table-mounted SCARA robot that folds when inactive to free up workspace.
 
 ### Development Method
 
@@ -322,7 +322,7 @@ Use the Python GUI to:
 
 ### System Modules
 
-The system is divided into three interconnected modules:
+The system is divided into three interconnected modules: a PC user interface, an ESP32 embedded control unit and the SCARA arm mechanical unit.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
