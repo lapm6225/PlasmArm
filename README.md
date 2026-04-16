@@ -16,24 +16,24 @@ A 3-DOF (X, Y, Z) SCARA robotic arm controlled by an ESP32 with real-time WebSoc
   - [BoM & Drawings](#BoM-and-Drawings)
   - [Mechanical Project Files](#Mechanical-Project-Files)
   - [Assembly Instructions](#Assembly-Instructions)
-
-- [Software Installation](#software-installation)
-  - [Prerequisites](#prerequisites)
-  - [PlatformIO Setup](#platformio-setup)
-  - [Python Client Setup](#python-client-setup)
-- [Configuration](#configuration)
-- [Building and Uploading](#building-and-uploading)
-- [Running the Robot](#running-the-robot)
-- [Architecture Overview](#architecture-overview)
-  - [System Modules](#system-modules)
-  - [FreeRTOS Task Structure](#freertos-task-structure)
-  - [Kinematics](#kinematics)
-  - [Trajectory Planning](#trajectory-planning)
-- [Web Interface](#web-interface)
-- [Testing](#testing)
-- [Licenses](#licenses)
-- [Troubleshooting](#troubleshooting)
-- [Project Structure](#project-structure)
+- [Software](#Software)
+  - [Software Installation](#software-installation)
+    - [Prerequisites](#prerequisites)
+    - [PlatformIO Setup](#platformio-setup)
+    - [Python Client Setup](#python-client-setup)
+  - [Configuration](#configuration)
+  - [Building and Uploading](#building-and-uploading)
+  - [Running the Robot](#running-the-robot)
+  - [Architecture Overview](#architecture-overview)
+    - [System Modules](#system-modules)
+    - [FreeRTOS Task Structure](#freertos-task-structure)
+    - [Kinematics](#kinematics)
+    - [Trajectory Planning](#trajectory-planning)
+  - [Web Interface](#web-interface)
+  - [Testing](#testing)
+  - [Licenses](#licenses)
+  - [Troubleshooting](#troubleshooting)
+  - [Project Structure](#project-structure)
 
 ---
 
@@ -159,6 +159,7 @@ Agile methodology with incremental feature delivery throughout the project.
 - [Assembly Instructions](Mechanic/Assembly%20Instructions.md)
 
 ---
+## Software
 
 ## Software Installation
 
