@@ -324,40 +324,7 @@ Use the Python GUI to:
 
 The system is divided into three interconnected modules: a PC user interface, an ESP32 embedded control unit and the SCARA arm mechanical unit.
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    PlasmArm Architecture                        │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  ┌─────────────────────┐    ┌─────────────────────────────┐     │
-│  │  User Interface     │    │   Embedded Control Unit     │     │
-│  │  (PC - Python)      │    │   (ESP32)                   │     │
-│  │                     │    │                             │     │
-│  │  - DXF Import       │──▶│  - JSON Reception           │     │
-│  │  - Trajectory Plan  │    │  - Inverse Kinematics       │    │
-│  │  - Jog Controls     │    │  - Command Execution        │    │
-│  │  - JSON Export      │    │  - Motor Communication      │    │
-│  └─────────────────────┘    └──────────────┬──────────────┘    │
-│                     Wi-Fi (WebSocket)     │                    │
-│                                           │                    │
-│                                           ▼                    │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │                    SCARA Arm (Mechanical)                │  │
-│  │                                                          │  │
-│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────┐   │  │
-│  │  │ Dynamixel   │  │ Dynamixel   │  │ SG90 + Rack     │   │  │
-│  │  │ (Shoulder)  │──│ (Elbow)     │  │ (Z-axis)        │   │  │
-│  │  │  ID: 1      │  │  ID: 2      │  │                 │   │  │
-│  │  └─────────────┘  └─────────────┘  └────────┬────────┘   │  │
-│  │                                             │            │  │
-│  │                                      ┌──────┴──────┐     │  │
-│  │                                      │ Limit Switch│     │  │
-│  │                                      │ (Contact)   │     │  │
-│  │                                      └─────────────┘     │  │
-│  └──────────────────────────────────────────────────────────┘  │
-│                                                                │
-└────────────────────────────────────────────────────────────────┘
-```
+![Communication Block Diagram](Software/Communication%20Block%20Diagram.png)
 
 #### Module 1: User Interface (PC)
 
