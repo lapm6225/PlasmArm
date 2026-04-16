@@ -2,7 +2,7 @@
 
 A 3-DOF (X, Y, Z) SCARA robotic arm controlled by an ESP32 with real-time WebSocket interface. Designed for compact plasma cutting applications in small workshops.
 
-![PlasmArm Robot](Mechanic/Mise%20en%20plan%20assemblage%20complet%20explosé.png)
+![PlasmArm Robot](Mechanic/Complete%20Robot%20Assembly%20Drawing.png)
 
 ## Table of Contents
 
@@ -10,8 +10,9 @@ A 3-DOF (X, Y, Z) SCARA robotic arm controlled by an ESP32 with real-time WebSoc
 - [Project Context](#project-context)
 - [Hardware Requirements](#hardware-requirements)
 - [Mechanical Assembly](#mechanical-assembly)
-  - [3D Printed Parts](#3d-printed-parts)
-  - [Bill of Materials](#bill-of-materials)
+  - [BoM & Drawings](#BoM-and-Drawings)
+  - [Mechanical Project Files](#Mechanical-Project-Files)
+  - [Assembly Instructions](#Assembly-Instructions)
 - [Electrical Wiring](#electrical-wiring)
 - [Software Installation](#software-installation)
   - [Prerequisites](#prerequisites)
@@ -97,22 +98,23 @@ Agile methodology with incremental feature delivery throughout the project.
 
 ---
 
-## Mechanical Assembly
+### Mechanical Assembly
 
-[TO BE ADDED: Assembly instructions with images]
+### BoM and Drawings
+![PlasmArm Robot Exploded](Mechanic/Complete%20Robot%20Exploded%20Assembly%20Drawing.png)
+![End Effector Exploded](Mechanic/End%20Effector%20Exploded%20Assembly%20Drawing.png)
 
-### 3D Printed Parts
-![PlasmArm Robot](Mechanic/Mise%20en%20plan%20assemblage%20complet%20explosé.png)
+### Mechanical Project Files
 - [STL Printing Files](Mechanic/STL%20Printing%20Files)
 - [STEP Part Files](Mechanic/STEP%20Part%20Files)
 
-<!--
-Print all STL files from the `STL/` folder with recommended settings:
-- Layer height: 0.2mm
-- Infill: 20%
-- Material: PLA or PETG recommended
-- Supports: As needed for overhangs
--->
+
+### Assembly Instructions
+- [Assembly Instructions](Mechanic/Assembly%20Instructions.md)
+
+---
+
+## Electrical Wiring
 
 ### Bill of Materials
 
@@ -121,35 +123,14 @@ Print all STL files from the `STL/` folder with recommended settings:
 | ESP32 Dev Kit | 1 | esp32doit-devkit-v1 |
 | Dynamixel XM430-W350 | 2 | Shoulder and elbow joints |
 | SG90 Servo | 1 | Z-axis actuation |
-| 12V Power Supply | 1 | 3A minimum |
-| Buck Converter (12V to 5V) | 1 | |
+| 12V Power Supply | 1 | 90W, 7.5A |
+| Buck Converter | 1 | 12V to 5V |
 | Level Shifter | 1 | 5V to 3.3V |
 | Limit Switch (NO) | 1 | Z-axis contact detection |
 | 10kΩ Resistor | 1 | Pull-up for limit switch |
 | 1N4148 Diode | 1 | Half-duplex UART |
-| M3 Screws | 20+ | Various lengths |
-| 608 Bearings | 2+ | For smooth rotation |
-
-### Assembly Instructions
-
-[TO BE ADDED: Step-by-step assembly guide with images]
-
-<!--
-1. Print all required parts
-2. Install heat inserts into 3D printed parts
-3. Assemble base with first Dynamixel motor
-4. Attach first arm segment
-5. Assemble elbow joint with second Dynamixel
-6. Attach second arm segment
-7. Install SG90 with rack-and-pinion for Z-axis
-8. Mount limit switch for tool contact detection
-9. Install ESP32 and electronics in base
-10. Wire all connections according to electrical diagram
--->
-
----
-
-## Electrical Wiring
+| Electrolytic Capacitor | 1 | 10uF |
+| Ceramic Capacitor | 3 | 10nF |
 
 ### ESP32 Pin Connections
 
@@ -160,44 +141,13 @@ Print all STL files from the `STL/` folder with recommended settings:
 | SG90 Servo (Z-axis) | 26 | PWM output |
 | Limit Switch | 32 | Input with 10kΩ pull-up |
 | 5V Power | - | From buck converter |
-| 3.3V Reference | - | From level shifter |
+| 3.3V Reference | - | From ESP32 |
 
 ### Wiring Diagram
 
-![Wiring](Electric/Shéma_éléctrique.png)
+![Wiring](Electric/Electrical%20Wiring%20Diagram.png)
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        12V Power Supply                         │
-└────────────────────────────┬────────────────────────────────────┘
-                             │
-                             ▼
-                    ┌────────────────┐
-                    │ Buck Converter │
-                    │   12V → 5V     │
-                    └────────┬───────┘
-                             │
-              ┌──────────────┼──────────────┐
-              ▼              ▼              ▼
-         ┌────────┐    ┌─────────┐    ┌──────────┐
-         │ESP32   │    │  SG90   │    │Dynamixel │
-         │        │    │(Z-axis) │    │  (daisy  │
-         │GPIO 26 │───▶│  PWM    │    │  chain)  │
-         │GPIO 32 │◀───│ Limit   │    │          │
-         │        │     │ Switch  │    │          │
-         │GPIO 16 │◀───┤         │    │          │
-         │GPIO 17 │───▶│         │────│          │
-         └────────┘     └─────────┘    └──────────┘
-              ▲              ▲
-              │    ┌─────────┤
-              │    │ Level   │
-              │    │ Shifter │
-              │    │(5V→3.3V)│
-              │    └─────────┘
-              │        ▲
-              └────────┘
-                 3.3V Reference
-```
+---
 
 ### Connection Details
 
