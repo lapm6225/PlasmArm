@@ -126,7 +126,7 @@ Agile methodology with incremental feature delivery throughout the project.
 | SG90 Servo (Z-axis) | 26 | PWM output |
 | Limit Switch | 32 | Input with 10kΩ pull-up |
 | 5V Power | - | From buck converter |
-| 3.3V Reference | - | From ESP32 |
+| 3.3V Reference | - | From Level Shifter |
 
 ### Wiring Diagram
 
