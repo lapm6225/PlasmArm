@@ -1847,6 +1847,9 @@ QLineEdit::placeholder {
                 </item>
                 <item>
                  <widget class="QPushButton" name="clickMoveBtn">
+                  <property name="toolTip">
+                   <string>Pointer position</string>
+                  </property>
                   <property name="styleSheet">
                    <string notr="true">QPushButton:checked {
         background-color: #0078d7;   /* Blue when active */

@@ -61,6 +61,15 @@ def generate_scene(window, scene, bicep, forearm, origin, elbow, shoulder):
     arc_min.setZValue(1000)
     scene.setSceneRect(scene.itemsBoundingRect())
 
+
+    arc_sw = QGraphicsEllipseItem(origin.x-R,origin.y-R/2+10, 2*214, 2*214)
+    scene.addItem(arc_sw)
+    arc_sw.setStartAngle(0)
+    arc_sw.setSpanAngle(180 * 16)
+    arc_sw.setPen(QPen(Qt.GlobalColor.red, 2))
+    arc_sw.setZValue(1000)
+    scene.setSceneRect(scene.itemsBoundingRect())
+
 # # --- Définition des dimension et des éléments dans l'affichage ---
 # def generate_scene(window, scene, bicep, forearm, origin, elbow, shoulder):
 #     # --- Définition de la zone d'affichage
