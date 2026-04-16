@@ -123,13 +123,14 @@ Agile methodology with incremental feature delivery throughout the project.
 | ESP32 Dev Kit | 1 | esp32doit-devkit-v1 |
 | Dynamixel XM430-W350 | 2 | Shoulder and elbow joints |
 | SG90 Servo | 1 | Z-axis actuation |
-| 12V Power Supply | 1 | 3A minimum |
-| Buck Converter (12V to 5V) | 1 | |
+| 12V Power Supply | 1 | 90W, 7.5A |
+| Buck Converter | 1 | 12V to 5V |
 | Level Shifter | 1 | 5V to 3.3V |
 | Limit Switch (NO) | 1 | Z-axis contact detection |
 | 10kΩ Resistor | 1 | Pull-up for limit switch |
 | 1N4148 Diode | 1 | Half-duplex UART |
-| Capacitor |  |  |
+| Electrolytic Capacitor | 1 | 10uF |
+| Ceramic Capacitor | 3 | 10nF |
 
 ### ESP32 Pin Connections
 
@@ -140,44 +141,13 @@ Agile methodology with incremental feature delivery throughout the project.
 | SG90 Servo (Z-axis) | 26 | PWM output |
 | Limit Switch | 32 | Input with 10kΩ pull-up |
 | 5V Power | - | From buck converter |
-| 3.3V Reference | - | From level shifter |
+| 3.3V Reference | - | From ESP32 |
 
 ### Wiring Diagram
 
 ![Wiring](Electric/Electrical%20Wiring%20Diagram.png)
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        12V Power Supply                         │
-└────────────────────────────┬────────────────────────────────────┘
-                             │
-                             ▼
-                    ┌────────────────┐
-                    │ Buck Converter │
-                    │   12V → 5V     │
-                    └────────┬───────┘
-                             │
-              ┌──────────────┼──────────────┐
-              ▼              ▼              ▼
-         ┌────────┐    ┌─────────┐    ┌──────────┐
-         │ESP32   │    │  SG90   │    │Dynamixel │
-         │        │    │(Z-axis) │    │  (daisy  │
-         │GPIO 26 │───▶│  PWM    │    │  chain)  │
-         │GPIO 32 │◀───│ Limit   │    │          │
-         │        │     │ Switch  │    │          │
-         │GPIO 16 │◀───┤         │    │          │
-         │GPIO 17 │───▶│         │────│          │
-         └────────┘     └─────────┘    └──────────┘
-              ▲              ▲
-              │    ┌─────────┤
-              │    │ Level   │
-              │    │ Shifter │
-              │    │(5V→3.3V)│
-              │    └─────────┘
-              │        ▲
-              └────────┘
-                 3.3V Reference
-```
+---
 
 ### Connection Details
 
