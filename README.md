@@ -2,7 +2,7 @@
 
 A 3-DOF (X, Y, Z) SCARA robotic arm controlled by an ESP32 with real-time WebSocket interface. Designed for compact plasma cutting applications in small workshops.
 
-![PlasmArm Robot](Mechanic/Mise%20en%20plan%20assemblage%20complet%20explosé.png)
+![PlasmArm Robot](Mechanic/Complete%20Robot%20Assembly%20Drawing.png)
 
 ## Table of Contents
 
