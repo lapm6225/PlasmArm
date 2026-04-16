@@ -10,7 +10,7 @@ A 3-DOF (X, Y, Z) SCARA robotic arm controlled by an ESP32 with real-time WebSoc
 - [Project Context](#project-context)
 - [Hardware Requirements](#hardware-requirements)
 - [Mechanical Assembly](#mechanical-assembly)
-  - [BoM & Drawing](#BoM-&-Drawing)
+  - [BoM & Drawing](#BoM-and-Drawing)
   - [Assembly Instructions](#Assembly-Instructions)
 - [Electrical Wiring](#electrical-wiring)
 - [Software Installation](#software-installation)
@@ -99,7 +99,7 @@ Agile methodology with incremental feature delivery throughout the project.
 
 ### Mechanical Assembly
 
-### BoM & Drawing
+### BoM and Drawing
 ![PlasmArm Robot](Mechanic/Mise%20en%20plan%20assemblage%20complet%20explosé.png)
 - [STL Printing Files](Mechanic/STL%20Printing%20Files)
 - [STEP Part Files](Mechanic/STEP%20Part%20Files)
