@@ -522,8 +522,11 @@ PlasmArm/
 │
 ├── Python/
 │   ├── main.py                # GUI application (PyQt6)
-│   ├── robot_client.py       # WebSocket client
+│   ├── communication.py       # WebSocket client
+│   ├── animation.py          # Ui display
+│   ├── dxf_display.py       # DXF file  management for ui
 │   ├── dxf_parser.py         # DXF file parsing
+│   ├── help_dialog.py       # Help window
 │   └── requirements.txt      # Python dependencies
 │
 ├── STL/                       # 3D print files (to be added)
