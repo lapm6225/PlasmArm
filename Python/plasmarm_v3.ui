@@ -1,0 +1,453 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1300</width>
+    <height>750</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>PlasmArm - Dashboard Industriel</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true">
+* {
+    font-family: 'Segoe UI', 'Helvetica Neue', sans-serif;
+    color: #ecf0f1;
+}
+
+#centralwidget {
+    background-color: #0c0f12;
+}
+
+#headerContainer {
+    background-color: #121519;
+    border-bottom: 2px solid #1E232B;
+}
+
+#headerTitle {
+    color: #3498db;
+    font-size: 16px;
+    font-weight: bold;
+    padding-left: 10px;
+}
+
+#leftSidebar, #ControlContainer, #ConnectionPanel {
+    background-color: #1A1F27;
+    border: 1px solid #2C3542;
+    border-radius: 8px;
+    margin: 5px;
+}
+
+QPushButton {
+    background-color: #28303C;
+    border: 1px solid #3C475A;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-weight: 500;
+}
+
+QPushButton:hover {
+    background-color: #3C475A;
+    border-color: #3498db;
+}
+
+QPushButton:pressed {
+    background-color: #1A1F27;
+}
+
+QPushButton:checked {
+    background-color: #2980b9;
+    border-color: #3498db;
+}
+
+/* BIG BUTTONS */
+#startBtn {
+    background-color: #27ae60;
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+    border: 2px solid #2ecc71;
+    border-radius: 8px;
+    padding: 20px;
+}
+#startBtn:hover {
+    background-color: #2ecc71;
+    border-color: #FFF;
+}
+
+#stopBtn {
+    background-color: #c0392b;
+    color: white;
+    font-size: 18px;
+    font-weight: bold;
+    border: 2px solid #e74c3c;
+    border-radius: 8px;
+    padding: 25px;
+}
+#stopBtn:hover {
+    background-color: #e74c3c;
+    border-color: #FFF;
+    box-shadow: 0 0 10px #e74c3c;
+}
+
+/* INPUTS */
+QLineEdit {
+    background-color: #07090b;
+    border: 1px solid #3C475A;
+    border-radius: 6px;
+    padding: 8px;
+    color: #3498db;
+    font-weight: bold;
+    selection-background-color: #3498db;
+}
+QLineEdit:focus {
+    border: 1px solid #3498db;
+    background-color: #0c0f12;
+}
+
+/* GRAPHICS VIEW */
+#graphicsView {
+    background-color: #ECF0F1;
+    border: 2px solid #2C3542;
+    border-radius: 10px;
+    margin: 5px;
+}
+
+/* LABELS */
+QLabel {
+    color: #7f8c8d;
+    font-size: 11px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+#lblMachineStatus {
+    color: #BDC3C7;
+    font-size: 14px;
+}
+
+/* WINDOW CONTROLS */
+#closeBtn { background-color: transparent; border: none; }
+#closeBtn:hover { background-color: #e74c3c; }
+#minBtn, #maxBtn { background-color: transparent; border: none; }
+#minBtn:hover, #maxBtn:hover { background-color: #3C475A; }
+   </string>
+  </property>
+
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QVBoxLayout" name="mainLayout">
+    <property name="spacing"><number>0</number></property>
+    <property name="leftMargin"><number>0</number></property>
+    <property name="topMargin"><number>0</number></property>
+    <property name="rightMargin"><number>0</number></property>
+    <property name="bottomMargin"><number>0</number></property>
+
+    <!-- HEADER -->
+    <item>
+     <widget class="QWidget" name="headerContainer">
+      <property name="minimumSize"><size><width>0</width><height>50</height></size></property>
+      <property name="maximumSize"><size><width>16777215</width><height>50</height></size></property>
+      <layout class="QHBoxLayout" name="headerLayout">
+       <item>
+        <widget class="QLabel" name="headerTitle">
+         <property name="text"><string>PLASMARM SCARA CONTROL</string></property>
+        </widget>
+       </item>
+       <item><spacer name="hSpacer1">
+        <property name="orientation"><enum>Qt::Horizontal</enum></property>
+        <property name="sizeHint" stdset="0"><size><width>40</width><height>20</height></size></property>
+       </spacer></item>
+       
+       <!-- QUICK CONNECT AREA -->
+       <item>
+        <widget class="QLineEdit" name="ipEdit">
+         <property name="text"><string>192.168.4.1</string></property>
+         <property name="maximumSize"><size><width>120</width><height>16777215</height></size></property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="connectBtn">
+         <property name="text"><string>CONNECT</string></property>
+         <property name="cursor"><cursorShape>PointingHandCursor</cursorShape></property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="disconnectBtn">
+         <property name="text"><string>DISCONNECT</string></property>
+         <property name="cursor"><cursorShape>PointingHandCursor</cursorShape></property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="connectPanelBtn">
+         <property name="text"><string>STATUS</string></property>
+         <property name="checkable"><bool>true</bool></property>
+        </widget>
+       </item>
+
+       <item><spacer name="hSpacer2">
+        <property name="orientation"><enum>Qt::Horizontal</enum></property>
+        <property name="sizeHint" stdset="0"><size><width>40</width><height>20</height></size></property>
+       </spacer></item>
+       
+       <!-- WIN CTRL -->
+       <item>
+        <widget class="QPushButton" name="minBtn">
+         <property name="text"><string>_</string></property>
+         <property name="maximumSize"><size><width>40</width><height>40</height></size></property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="maxBtn">
+         <property name="text"><string>☐</string></property>
+         <property name="maximumSize"><size><width>40</width><height>40</height></size></property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="closeBtn">
+         <property name="text"><string>X</string></property>
+         <property name="maximumSize"><size><width>40</width><height>40</height></size></property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </item>
+
+    <!-- BODY -->
+    <item>
+     <widget class="QWidget" name="bodyWidget">
+      <layout class="QHBoxLayout" name="bodyLayout">
+       <property name="spacing"><number>0</number></property>
+       <property name="leftMargin"><number>5</number></property>
+       <property name="topMargin"><number>5</number></property>
+       <property name="rightMargin"><number>5</number></property>
+       <property name="bottomMargin"><number>5</number></property>
+
+       <!-- LEFT SIDEBAR -->
+       <item>
+        <widget class="QWidget" name="leftSidebar">
+         <property name="minimumSize"><size><width>220</width><height>0</height></size></property>
+         <property name="maximumSize"><size><width>220</width><height>16777215</height></size></property>
+         <layout class="QVBoxLayout" name="leftLayout">
+          <property name="spacing"><number>10</number></property>
+          
+          <item><widget class="QLabel" name="lblFiles"><property name="text"><string>WORKFLOW FICHIER</string></property></widget></item>
+          <item>
+           <widget class="QPushButton" name="downloadBtn">
+            <property name="text"><string>1. Charger DXF</string></property>
+            <property name="cursor"><cursorShape>PointingHandCursor</cursorShape></property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="dxfBtn">
+            <property name="text"><string>2. Générer DXF Trajectoire</string></property>
+            <property name="cursor"><cursorShape>PointingHandCursor</cursorShape></property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="deleteBtn">
+            <property name="text"><string>Fermer / Clear</string></property>
+            <property name="cursor"><cursorShape>PointingHandCursor</cursorShape></property>
+           </widget>
+          </item>
+          
+          <item><spacer name="vSpacer1">
+           <property name="orientation"><enum>Qt::Vertical</enum></property>
+           <property name="sizeHint" stdset="0"><size><width>20</width><height>40</height></size></property>
+          </spacer></item>
+          
+          <item><widget class="QLabel" name="lblMachine"><property name="text"><string>SUPERVISION MACHINE</string></property></widget></item>
+          <item>
+           <widget class="QPushButton" name="startBtn">
+            <property name="text"><string>▶ START PROCESS</string></property>
+            <property name="cursor"><cursorShape>PointingHandCursor</cursorShape></property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="stopBtn">
+            <property name="text"><string>EMERGENCY STOP</string></property>
+            <property name="cursor"><cursorShape>PointingHandCursor</cursorShape></property>
+           </widget>
+          </item>
+          
+          <item><spacer name="vSpacer2">
+           <property name="orientation"><enum>Qt::Vertical</enum></property>
+           <property name="sizeHint" stdset="0"><size><width>20</width><height>40</height></size></property>
+          </spacer></item>
+          
+          <item>
+           <widget class="QPushButton" name="helpBtn">
+            <property name="text"><string>Manuel / Aide</string></property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+
+       <!-- GRAPHICS VIEW -->
+       <item>
+        <widget class="QGraphicsView" name="graphicsView">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+           <horstretch>1</horstretch>
+           <verstretch>1</verstretch>
+          </sizepolicy>
+         </property>
+        </widget>
+       </item>
+
+       <!-- RIGHT SIDEBAR (ControlContainer & ConnectionPanel) -->
+       <item>
+        <widget class="QWidget" name="rightPanel">
+         <property name="minimumSize"><size><width>280</width><height>0</height></size></property>
+         <property name="maximumSize"><size><width>280</width><height>16777215</height></size></property>
+         <layout class="QVBoxLayout" name="rightPanelLayout">
+          <property name="spacing"><number>0</number></property>
+          <property name="leftMargin"><number>0</number></property>
+          <property name="topMargin"><number>0</number></property>
+          <property name="rightMargin"><number>0</number></property>
+          <property name="bottomMargin"><number>0</number></property>
+
+          <item>
+           <widget class="QWidget" name="ControlContainer">
+            <layout class="QVBoxLayout" name="controlLayout">
+             <property name="spacing"><number>10</number></property>
+             
+             <item><widget class="QLabel" name="lblJog"><property name="text"><string>JOG &amp; MOUVEMENT</string></property></widget></item>
+             
+             <!-- JOG PAD (D-PAD STYLE) -->
+             <item>
+              <layout class="QGridLayout" name="jogGridLayout">
+               <item row="0" column="1">
+                <widget class="QPushButton" name="upBtn">
+                 <property name="text"><string>▲ UP</string></property>
+                 <property name="minimumSize"><size><width>0</width><height>50</height></size></property>
+                </widget>
+               </item>
+               <item row="1" column="0">
+                <widget class="QPushButton" name="leftBtn">
+                 <property name="text"><string>◀ LEFT</string></property>
+                 <property name="minimumSize"><size><width>0</width><height>50</height></size></property>
+                </widget>
+               </item>
+               <item row="1" column="1">
+                <widget class="QPushButton" name="homeBtn">
+                 <property name="text"><string>HOME</string></property>
+                 <property name="minimumSize"><size><width>0</width><height>50</height></size></property>
+                 <property name="styleSheet"><string>background-color: #2980b9;</string></property>
+                </widget>
+               </item>
+               <item row="1" column="2">
+                <widget class="QPushButton" name="rightBtn">
+                 <property name="text"><string>RIGHT ▶</string></property>
+                 <property name="minimumSize"><size><width>0</width><height>50</height></size></property>
+                </widget>
+               </item>
+               <item row="2" column="1">
+                <widget class="QPushButton" name="downBtn">
+                 <property name="text"><string>▼ DOWN</string></property>
+                 <property name="minimumSize"><size><width>0</width><height>50</height></size></property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+
+             <item>
+              <widget class="QPushButton" name="clickMoveBtn">
+               <property name="text"><string>🎯 Click-to-Move Mode</string></property>
+               <property name="checkable"><bool>true</bool></property>
+              </widget>
+             </item>
+
+             <item><widget class="QLabel" name="lblTool"><property name="text"><string>OUTIL PLASMA</string></property></widget></item>
+             <item>
+              <layout class="QHBoxLayout" name="toolLayout">
+               <item>
+                <widget class="QPushButton" name="toolUpBtn">
+                 <property name="text"><string>↥ Tool UP</string></property>
+                 <property name="minimumSize"><size><width>0</width><height>40</height></size></property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="toolDownBtn">
+                 <property name="text"><string>↧ Tool DOWN</string></property>
+                 <property name="minimumSize"><size><width>0</width><height>40</height></size></property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+
+             <item><widget class="QLabel" name="lblSpeed"><property name="text"><string>PARAMÈTRES DE VITESSE</string></property></widget></item>
+             <item>
+              <layout class="QHBoxLayout" name="speedLayout1">
+               <item><widget class="QLabel" name="lblLinear"><property name="text"><string>Vitesse Linéaire:</string></property></widget></item>
+               <item>
+                <widget class="QLineEdit" name="linSpeedEdit">
+                 <property name="text"><string>1.0</string></property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+             <item>
+              <layout class="QHBoxLayout" name="speedLayout2">
+               <item><widget class="QLabel" name="lblAngular"><property name="text"><string>Vitesse Angulaire:</string></property></widget></item>
+               <item>
+                <widget class="QLineEdit" name="angSpeedEdit">
+                 <property name="text"><string>1.0</string></property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+
+             <item><spacer name="vSpacer4">
+              <property name="orientation"><enum>Qt::Vertical</enum></property>
+              <property name="sizeHint" stdset="0"><size><width>20</width><height>40</height></size></property>
+             </spacer></item>
+             
+             <!-- HIDDEN BUTTONS FOR COMPATIBILITY -->
+             <item>
+              <widget class="QPushButton" name="jogBtn">
+               <property name="text"><string>Afficher JogPanel (Logic)</string></property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="manualBtn">
+               <property name="text"><string>Seq Manuelle</string></property>
+              </widget>
+             </item>
+             
+            </layout>
+           </widget>
+          </item>
+          
+          <!-- CONNECTION PANEL ZONE (Will be toggled by connectPanelBtn logic inside main.py) -->
+          <item>
+           <widget class="QWidget" name="ConnectionPanel">
+            <property name="minimumSize"><size><width>0</width><height>100</height></size></property>
+            <layout class="QVBoxLayout" name="connLayout">
+             <item><widget class="QLabel" name="lblConnTitle"><property name="text"><string>DÉTAILS CONNEXION</string></property></widget></item>
+             <item><widget class="QLabel" name="lblInfo"><property name="text"><string>Statut TCP/IP WebSocket...</string></property></widget></item>
+             <item><spacer name="vSpacer5">
+              <property name="orientation"><enum>Qt::Vertical</enum></property>
+              <property name="sizeHint" stdset="0"><size><width>20</width><height>40</height></size></property>
+             </spacer></item>
+            </layout>
+           </widget>
+          </item>
+
+         </layout>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
